@@ -1,0 +1,94 @@
+---
+title: "Untitled"
+author: "Francesco MONTI"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+# Packages ------------------------------------------------------------------
+
+library(tidyverse)     # The main "tidyverse" packages.
+library(magrittr)
+library(openxlsx)
+library(ggplot2)
+library(pander)        # Function `pander()` to report results of statistical analysis.
+library(knitr)         # Function `kable()` to convert data frames into tables for reports.
+library(DT)            # Interactive tables for HTML documents (DataTables).
+library(gt)            # Easily Create Presentation-Ready Display Tables.
+library(flextable)     # Functions for Tabular Reporting.
+library(stringr)
+
+# Settings ------------------------------------------------------------------
+
+Sys.getlocale()
+
+# Chunk options
+knitr::opts_chunk$set(
+  echo       = TRUE,    # Should blocks with program code be shown in knitted documents?
+  eval       = TRUE,    # Should program code be evaluated?
+  fig.height = 3,       # Default height for plots.
+  fig.width  = 5,       # Default width for plots.
+  fig.align  = "center" # Default alignment for plots in knitted documents.
+)
+
+# Options to format numbers
+options(        # For more detais see ?options
+  scipen = 8,   # Show at least 8 digits in numbers before converting to exponential notation.
+    digits = 3,   # Number of significant digits to print numbers.
+    OutDec = ".", # Default decimal separator to print numbers.
+    knitr.kable.NA = NA # Replacement for NA values in knitr::kable()
+)
+
+# Options for package "pander"
+options(
+  pander = modifyList(
+    pander::panderOptions(),
+    list(
+      digits = getOption("digits", default = 3),
+      round  = Inf,
+      decimal.mark = getOption("OutDec", default = "."),
+      big.mark = "",
+      keep.trailing.zeros = TRUE,
+      missing = getOption("knitr.kable.NA", default = NA),
+      table.style = "multiline", # "multiline", "grid", "simple", "rmarkdown"
+      table.split.table = 80,
+      table.split.cells = 30,
+      table.continues   = "Table continues below",
+      table.continues.affix = "(continued below)",
+      p.wrap   = "_",
+      p.sep    = ", ",
+      p.copula = " and ",
+      knitr.auto.asis = TRUE
+    ))
+)
+
+
+ggplot2::theme_set(ggplot2::theme_bw()) # Default ggplot2 theme
+
+conflicted::conflict_prefer("filter", "dplyr")
+conflicted::conflict_prefer("lag",    "dplyr")
+
+set.seed(20230604) # Initial condition for random processes.
+```
+
+
+```{r load, echo = F}
+pre = read.xlsx("Résultats pré test.xlsx")
+post = read.xlsx("Résultats post test.xlsx")
+
+pre = pre %>% 
+    select(-(2:7)) %>% 
+    rename_all(~ str_replace_all(., "\\.", "_")) %>% 
+    tibble() %>% 
+    mutate(`Quel_est_votre_formation_?` = replace_na(`Quel_est_votre_formation_?`,
+                                                     "Soins infirmiers"))
+
+
+
+
+
+
+
+
+```
