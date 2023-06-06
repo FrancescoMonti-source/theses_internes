@@ -1,0 +1,45 @@
+---
+title: "Rachel_Frebourg"
+author: "Francesco MONTI"
+date: "2023-06-06"
+output: html_document
+---
+
+```{r}
+# LIBRARIES -----------------------------------------------------------------------------------
+library(conflicted)    # Get a warning/error if several functions with the same name exist.
+library(magrittr)      # Operator %>% and additional pipe-friendly functions.
+library(tidyverse)     # The main "tidyverse" packages.
+library(openxlsx)      # Write data to Excel files.
+library(stringr) 
+
+# DATA ------------------------------------------------------------------------------------------
+post = read.xlsx("Copie de resultats Q2 copie.xlsx", sheet = 1)
+pre = read.xlsx("Copie de resultats Q1 copie.xlsx", sheet = 1)
+```
+
+```{r}
+# Colnames() to lowercase
+colnames(pre) = tolower(colnames(pre))
+colnames(post) = tolower(colnames(post))
+
+# Preparing for merge
+pre = pre %>% 
+    select(-contains(c("id","submitdate","lastpage","startlanguage"))) %>% 
+    rename("filiere"=b1, "id" = a1) %>% 
+    mutate(test = "pre")
+
+post = post %>%
+    filter(!is.na(submitdate)) %>% 
+    select(-contains(c("id","submitdate","lastpage","startlanguage","x26","x27"))) %>% 
+    rename("id" = a1) %>% 
+    left_join(pre[,c("id","filiere")], by = "id") %>% 
+    relocate(filiere, .after = "id") %>% 
+    mutate(test = "post")
+
+# Merging
+data = rbind(pre,post) %>% tibble
+data = data %>% mutate(across(s1q1:s7q2, as.numeric))
+
+```
+
