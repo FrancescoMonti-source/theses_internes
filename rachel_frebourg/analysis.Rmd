@@ -101,6 +101,7 @@ library(knitr)
 library(kableExtra)
 library(pander)
 library(DT)
+library(janitor)
 
 conflicted::conflicts_prefer(dplyr::filter)
 
@@ -172,6 +173,7 @@ data %>% distinct(id,filiere) %$%
     table(filiere) %>% 
     as.data.frame() %>% 
     mutate("%" = round(Freq/sum(Freq)*100, 2)) %>% 
+    adorn_totals() %>% 
     pander(caption = "**Repartition sujets par filière**")
 ```
 
@@ -209,6 +211,7 @@ data %>%
   group_by(filiere) %>%
   summarise(Freq = sum(na_counts)) %>%
   mutate("%" = round(Freq / sum(Freq) * 100, 2)) %>%
+    adorn_totals() %>% 
   pander(caption = "**Valeurs manquantes par filière**", align = "center")
 
 
@@ -236,7 +239,8 @@ data %>%
               ) 
 ```
 
-Les entrées supplementaires ne sont pas des "doublons", les valeurs ne sont pas les mêmes. Je vais donc prendre la moyenne de ces valeurs.
+Les entrées supplementaires ne sont pas des "doublons", les valeurs ne sont pas les mêmes. Je vais donc prendre la moyenne de ces valeurs. Ci dessous le résultat, on est à 766 lignes alor que notre max theorique est 758. Il y a forcement des gens qui se sont enregistrés avec plus qu'un ID (j'ai renommé la variable "A1").   
+Ca ne m'inquiète pas pour les tests appariés, je ne pense pas que des gens ont 2*2 tests appariés mais je controllerai.
 
 ```{r}
 data %>% 
@@ -263,14 +267,15 @@ data %>%
 test_data <- data %>%
   group_by(id, filiere, test) %>%
   summarise(mean_score = mean(c_across(s1q1:s7q2), na.rm = T)) %>%
-  pivot_wider(names_from = "test", values_from = "mean_score")
+  pivot_wider(names_from = "test", values_from = "mean_score") %>%
+    filter(!is.na(post),!is.na(pre)) %>% distinct
 
 # paired cases by filiere
-test_data %>% filter(!is.na(post),!is.na(pre)) %>% 
-    distinct() %$% 
+test_data %$% 
     table(filiere) %>% 
     as.data.frame() %>% 
     mutate("%" = round(Freq/sum(Freq)*100, 2)) %>% 
+    adorn_totals() %>% 
     pander(caption = "Cas appariés par filière")
 ```
 
