@@ -348,7 +348,6 @@ data %>%
 
 ## Nb et repartition sujets participants
 ```{r }
-invisible(n_distinct(data$id))
 
 data %>% distinct(id,filiere) %$% 
     table(filiere) %>% 
