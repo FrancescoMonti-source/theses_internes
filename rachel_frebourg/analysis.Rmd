@@ -3,7 +3,7 @@
 title:    "Thèse - Rachel Frébourg"
 subtitle: "Comparaison avant-après niveau interdisciplinarité chez les pro de santé"
 author:   "Francesco MONTI"
-date:     "2023-06-07 15:54:40" # Automatic date
+date:     "`r Sys.time()`" # Automatic date and time
 # Document Format and Appearance ---------------------------------------------
 # type ?html_document for more details
 output:
@@ -75,7 +75,6 @@ output:
 ---
 
 
-
 ```{r chunk options, echo=F}
 # Chunk options
 knitr::opts_chunk$set(
@@ -145,27 +144,209 @@ data = data %>%
                                filiere == "interne de médecine générale" ~ "medecine generale",
                                TRUE ~ NA_character_
                                )
-           ) %>% 
-    filter(!is.na(id))
+           )
 
+# Adding mean score column
+data = data %>% mutate(score = rowMeans(across(s1q1:s7q2),na.rm=T))
+```
+
+
+# Exploratory analysis
+## Selection des questionnaires
+```{r filtering out invidalid questionnaires, include = F}
+rows_1 = nrow(data)
+unique_ids_1 = n_distinct(data$id)
+
+# Removing missing IDs rows (n=4)
+data = data %>% filter(!is.na(id))
+unique_ids_2 = n_distinct(data$id)
+rows_2 = nrow(data)
 
 # Computing missing values per row
 data = data %>% filter(!is.na(id)) %>% 
     mutate(na_counts = rowSums(across(s1q1:s7q2, is.na)))
 
+# Empty questionnaires
+empty_q = sum(data$na_counts==20)
+
+
 # Removing totally incomplete questionnaires
 data = data %>% filter(na_counts<20)
-
-
+unique_ids_3 = n_distinct(data$id)
+rows_3 = nrow(data)
 
 ```
 
-# Exploratory analysis
+Au tout début on a **`r rows_1`** lignes et **`r unique_ids_1`** IDs.  
+  <br>
+Après avoir exclu 4 lignes à cause de missing ID, on descend à **`r (rows_1 - 4)`** questionnaires et **`r unique_ids_2`** IDs (l'ID "valeur manquante" n'est plus comptabilisé, c'est pour ça qu'on "perd" un ID).  
+  <br>
+Sachant que **`r unique_ids_2`**x2=**`r (unique_ids_2*2)`**on a **`r rows_2 - 760`** entrées de trop.
+  <br>
+On retrouve **`r empty_q`** questionnaires completement vides, qu'on peut exclure ce qui nous donne **`r rows_3`** questionnaires et **`r unique_ids_3`** IDs uniques.  
+  <br>
+On est tjrs très loin de notre objectif de environ **`r (unique_ids_2*2)`** questionnaires (**`r (unique_ids_3*2)`** maintenant qu'on a **`r unique_ids_3`** IDs).
+  <br>
+
+Donc, on a forcement des IDs pour lesquels on a **>2** entrées. Voyons de les mettre en evidence.
+
+```{r IDs with too many entries}
+data %>% 
+    group_by(id) %>% 
+    summarise(n=n()) %>%
+    arrange(desc(n)) %>%
+    datatable(options = list(pageLength = 10,
+                             #dom = 't',
+                             scrollX = TRUE,
+                             width = "auto",
+                             scrollX = T
+                             ))
+
+problematic_IDs = data %>% group_by(id) %>% summarise(n=n()) %>% filter(n>2) %>% nrow
+
+```
+  
+  <br>
+Comme tu peux le voir on semble avoir `r problematic_IDs` IDs presents **au moins** 3 fois.
+  <br>
+Creusons plus loin pour voir si on identifie un groupe d'IDs problematique. Théoriquement, si les gens avaient respecté les régles pour la création de l'identifiant anonyme, l'identifiant devrait suivre le *pattern* suivant: 1 chiffre - 2 lettres - 2 chiffres.  
+
+Voyons pour combien de lignes ce *pattern* est respecté:
+```{r looking for IDs not following the rules}
+str_detect(data$id, "[:digit:]{1}[:alpha:]{2}[:digit:]{2}") %>% 
+    table %>%
+    pander
+```
+
+Cela nous dit que **même si** on regarde seulement les gens qui ont respecté la procedure pour la création des IDs, on à tjrs des lignes de trop. D'abord, regardons les entrés des gens qui ont tapé un ID au pif.
+
+```{r dataframe IDs aberrants}
+data %>% 
+    filter(!str_detect(id, "[:digit:]{1}[:alpha:]{2}[:digit:]{2}")) %>%
+    arrange(id) %>% 
+    datatable(options = list(pageLength = 10,
+                             #dom = 't',
+                             scrollX = TRUE,
+                             width = "auto",
+                             scrollX = T
+                             ))
+```
+  
+  <br>
+Néanmoins, s'ils ont utilisé 2 fois **le même** identifiant *aberrant* on pourra quand même les apparier. Voyons donc les IDs qui apparaissent **>2** fois. Les IDs  *aberrants* qui apparaissent **2** fois on peut les utiliser, les IDs qui apparaissent qu'une seule fois, idem, on peut les garder pour la partie descriptive (carrement ils ne sera pas possible de les utiliser pour la comparaison avant-après).
+  <br>
+  
+```{r IDs aberrants presentes 2+ fois}
+data %>% 
+    filter(!str_detect(id, "[:digit:]{1}[:alpha:]{2}[:digit:]{2}")) %>%
+    group_by(id) %>%
+    summarise(n=n()) %>% 
+    arrange(desc(n)) %>%
+    datatable(options = list(pageLength = 10,
+                             #dom = 't',
+                             scrollX = TRUE,
+                             width = "auto",
+                             scrollX = T
+                             ))
+```
+  
+On voit que le seul ID problematique parmi les *aberrants* est **"12345"**.<br>
+Est-ce que la filière pourrait nous aider? Voyons.
+
+```{r filtering on ID "12345"}
+data %>% 
+    filter(id=="12345") %>%
+    datatable(options = list(pageLength = 10,
+                             #dom = 't',
+                             scrollX = TRUE,
+                             width = "auto",
+                             scrollX = T
+                             ))
+```
+  
+On semble avoir 1 IDE et 1 MG, qui ont un doublon de "2ème test". 
+Si on regarde avec attention la ligne 3 et 4 sont identiques, avec une "filière" différente. <br>
+Si la ligne 3 et 4 étaient par exemple "IDE" et la ligne 5 et 6 étaient "medecine generale" on aurait identifié des doublons --> problème résolu. 
+Mais dans ce cas on a des doublons **ET** 2 personnes qui ont rentré 2 fois le "2ème test" en changeant aussi de filière. Ou Il est donc impossible de rattacher ces questionnaires à un "test 1".
+Ce qui est très très bizarre, est que les lignes 3 et 5 sont IDENTIQUES aux lignes 4 et 6. Ce qu'on peut faire, est prendre la moyenne des lignes 3-5 et 4-6. Le même approche nous sera utile pour gérer les IDs *non aberrants* doublons qui sont les suivants:
+
+
+```{r IDs non aberrants de trop}
+data %>% 
+    filter(str_detect(id, "[:digit:]{1}[:alpha:]{2}[:digit:]{2}")) %>%
+    group_by(id) %>%
+    mutate(n=n()) %>% 
+   filter(n>2) %>%
+    relocate(n, .after = id) %>% 
+    arrange(desc(n)) %>% 
+    datatable(options = list(pageLength = 10,
+                             #dom = 't',
+                             scrollX = TRUE,
+                             width = "auto",
+                             scrollX = T
+                             ))
+
+
+data = data%>%
+     group_by(id, test, filiere) %>%
+     summarise(across(s1q1:last_col(), ~mean(., na.rm = TRUE)), .groups = "drop")
+```
+  
+
+Vu que "ID" ne suffit pour identifier uniquement les lignes, si on prend "ID" + "test" + "filiere" et on fait la moyenne des lignes ambigues on devrait s'en sortir pas mal.
+Cela nous laisse avec `r nrow(data)` questionnaires. <br>
+Bon, on sait dejà qu'on a des IDs qui apparaissent trop souvent mais si on prend ID-filiere, est-ce que maintenant on a max 2 lignes par couple ID-filiere?
+  
+
+```{r}
+data %>% 
+    group_by(id,filiere) %>%
+    summarise(n=n()) %>% 
+    arrange(desc(n)) %>%
+    datatable(options = list(pageLength = 10,
+                             #dom = 't',
+                             scrollX = TRUE,
+                             width = "auto",
+                             scrollX = T
+                             ))
+
+```
+  
+Oui! Nous avons maintenant 413 identité uniques données par ID+FILIERE. Vu qu'on a besoin de "filière" pour identifier les gens, on va esclure les lignes où "filière" n'est pas renseigné.
+
+
+```{r}
+filiere_na = data %>% filter(is.na(filiere)) %>% nrow()
+
+# REMOVING MISSING "filiere" rows
+data = data %>% filter(!is.na(filiere))
+
+# How many questionnaires left?
+questionnaires = nrow(data)
+# How many unique identifties?
+ids = data %>% distinct(id,filiere) %>% nrow
+
+
+data %>% 
+    group_by(id,filiere) %>%
+    summarise(n=n()) %>% 
+    arrange(desc(n))  %$% table(n) %>% pander(caption = "Nb questionnaires appariés et non")
+```
+
+On exclu donc `r filiere_na` lignes car valeur manquante. On est maintenant à **`r questionnaires`** questionnaires pour **`r ids`** identités. Voyons combien de gens on peut apparier. <br>
+  
+```{r}
+data %>% 
+    group_by(id,filiere) %>%
+    summarise(n=n()) %>% 
+    arrange(desc(n))  %$% table(n) %>% pander(caption = "Nb questionnaires appariés et non")
+```
+ 
+  
+
+
 
 ## Nb et repartition sujets participants
-
-On a un total de **379** sujets si on regarde les idenfiants anonymes uniques, repartis de la façon suivante:
-
 ```{r }
 invisible(n_distinct(data$id))
 
