@@ -81,8 +81,9 @@ pre = pre %>%
     select(-(2:7)) %>% 
     rename_all(~ str_replace_all(., "\\.", "_")) %>% 
     tibble() %>% 
-    mutate(`Quel_est_votre_formation_?` = replace_na(`Quel_est_votre_formation_?`,
-                                                     "Soins infirmiers"))
+    mutate(`Quel_est_votre_formation_?` = replace_na(`Quel_est_votre_formation_?`,"Soins infirmiers")) %>% 
+  rename()
+
 
 
 
