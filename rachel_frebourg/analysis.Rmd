@@ -74,7 +74,6 @@ output:
                                     # to exclude MathJax entirely.
 ---
 
-
 ```{r chunk options, echo=F}
 # Chunk options
 knitr::opts_chunk$set(
@@ -150,10 +149,11 @@ data = data %>%
 data = data %>% mutate(score = rowMeans(across(s1q1:s7q2),na.rm=T))
 ```
 
-
 # Exploratory analysis
+
 ## Selection des questionnaires
-```{r filtering out invidalid questionnaires, include = F}
+
+```{r "filtering_out_invidalid_questionnaires", include = F}
 rows_1 = nrow(data)
 unique_ids_1 = n_distinct(data$id)
 
@@ -177,20 +177,13 @@ rows_3 = nrow(data)
 
 ```
 
-Au tout début on a **`r rows_1`** lignes et **`r unique_ids_1`** IDs.  
-  <br>
-Après avoir exclu 4 lignes à cause de missing ID, on descend à **`r (rows_1 - 4)`** questionnaires et **`r unique_ids_2`** IDs (l'ID "valeur manquante" n'est plus comptabilisé, c'est pour ça qu'on "perd" un ID).  
-  <br>
-Sachant que **`r unique_ids_2`**x2=**`r (unique_ids_2*2)`**on a **`r rows_2 - 760`** entrées de trop.
-  <br>
-On retrouve **`r empty_q`** questionnaires completement vides, qu'on peut exclure ce qui nous donne **`r rows_3`** questionnaires et **`r unique_ids_3`** IDs uniques.  
-  <br>
-On est tjrs très loin de notre objectif de environ **`r (unique_ids_2*2)`** questionnaires (**`r (unique_ids_3*2)`** maintenant qu'on a **`r unique_ids_3`** IDs).
-  <br>
+Au tout début on a **`r rows_1`** lignes et **`r unique_ids_1`** IDs. Après avoir exclu 4 lignes à cause de missing ID, on descend à **`r (rows_1 - 4)`** questionnaires et **`r unique_ids_2`** IDs (l'ID "valeur manquante" n'est plus comptabilisé, c'est pour ça qu'on "perd" un ID).
 
-Donc, on a forcement des IDs pour lesquels on a **>2** entrées. Voyons de les mettre en evidence.
+Sachant que **`r unique_ids_2`**x2=**`r (unique_ids_2*2)`** on a **`r rows_2 - 760`** entrées de trop. On retrouve **`r empty_q`** questionnaires completement vides, qu'on peut exclure ce qui nous donne **`r rows_3`** questionnaires et **`r unique_ids_3`** IDs uniques.
 
-```{r IDs with too many entries}
+On est tjrs très loin de notre objectif de environ **`r (unique_ids_2*2)`** questionnaires (**`r (unique_ids_3*2)`** maintenant qu'on a **`r unique_ids_3`** IDs). Donc, on a forcement des IDs pour lesquels on a **\>2** entrées. Voyons de les mettre en evidence.
+
+```{r IDs_with_too_many_entries}
 data %>% 
     group_by(id) %>% 
     summarise(n=n()) %>%
@@ -205,22 +198,20 @@ data %>%
 problematic_IDs = data %>% group_by(id) %>% summarise(n=n()) %>% filter(n>2) %>% nrow
 
 ```
-  
-  <br>
-Comme tu peux le voir on semble avoir `r problematic_IDs` IDs presents **au moins** 3 fois.
-  <br>
-Creusons plus loin pour voir si on identifie un groupe d'IDs problematique. Théoriquement, si les gens avaient respecté les régles pour la création de l'identifiant anonyme, l'identifiant devrait suivre le *pattern* suivant: 1 chiffre - 2 lettres - 2 chiffres.  
+
+Comme tu peux le voir on semble avoir `r problematic_IDs` IDs presents **au moins** 3 fois. Creusons plus loin pour voir si on identifie un groupe d'IDs problematique. Théoriquement, si les gens avaient respecté les régles pour la création de l'identifiant anonyme, l'identifiant devrait suivre le *pattern* suivant: 1 chiffre - 2 lettres - 2 chiffres.
 
 Voyons pour combien de lignes ce *pattern* est respecté:
-```{r looking for IDs not following the rules}
+
+```{r "looking_for_IDs_not_following_the_rules"}
 str_detect(data$id, "[:digit:]{1}[:alpha:]{2}[:digit:]{2}") %>% 
     table %>%
     pander
 ```
 
-Cela nous dit que **même si** on regarde seulement les gens qui ont respecté la procedure pour la création des IDs, on à tjrs des lignes de trop. D'abord, regardons les entrés des gens qui ont tapé un ID au pif.
+Cela nous dit que **même si** on regarde seulement les gens qui ont respecté la procedure pour la création des IDs, on à tjrs des lignes de trop. D'abord, regardons les entrés des gens qui ont tapé un ID au pif (donc les "falses").
 
-```{r dataframe IDs aberrants}
+```{r "dataframe_IDs_aberrants"}
 data %>% 
     filter(!str_detect(id, "[:digit:]{1}[:alpha:]{2}[:digit:]{2}")) %>%
     arrange(id) %>% 
@@ -231,12 +222,10 @@ data %>%
                              scrollX = T
                              ))
 ```
-  
-  <br>
-Néanmoins, s'ils ont utilisé 2 fois **le même** identifiant *aberrant* on pourra quand même les apparier. Voyons donc les IDs qui apparaissent **>2** fois. Les IDs  *aberrants* qui apparaissent **2** fois on peut les utiliser, les IDs qui apparaissent qu'une seule fois, idem, on peut les garder pour la partie descriptive (carrement ils ne sera pas possible de les utiliser pour la comparaison avant-après).
-  <br>
-  
-```{r IDs aberrants presentes 2+ fois}
+
+Néanmoins, s'ils ont utilisé 2 fois **le même** identifiant *aberrant* on pourra quand même les apparier. Voyons donc les IDs qui apparaissent **\>2** fois. Les IDs *aberrants* qui apparaissent **2** fois on peut les utiliser, les IDs qui apparaissent qu'une seule fois, idem, on peut les garder pour la partie descriptive (carrément ils ne sera pas possible de les utiliser pour la comparaison avant-après).
+
+```{r "IDs_aberrants_presentes_2plus_fois"}
 data %>% 
     filter(!str_detect(id, "[:digit:]{1}[:alpha:]{2}[:digit:]{2}")) %>%
     group_by(id) %>%
@@ -249,11 +238,10 @@ data %>%
                              scrollX = T
                              ))
 ```
-  
-On voit que le seul ID problematique parmi les *aberrants* est **"12345"**.<br>
-Est-ce que la filière pourrait nous aider? Voyons.
 
-```{r filtering on ID "12345"}
+On voit que le seul ID problematique parmi les *aberrants* est **"12345"**. Voyons les lignes qui correspondent à cet ID.
+
+```{r filtering_on_ID_12345}
 data %>% 
     filter(id=="12345") %>%
     datatable(options = list(pageLength = 10,
@@ -263,15 +251,10 @@ data %>%
                              scrollX = T
                              ))
 ```
-  
-On semble avoir 1 IDE et 1 MG, qui ont un doublon de "2ème test". 
-Si on regarde avec attention la ligne 3 et 4 sont identiques, avec une "filière" différente. <br>
-Si la ligne 3 et 4 étaient par exemple "IDE" et la ligne 5 et 6 étaient "medecine generale" on aurait identifié des doublons --> problème résolu. 
-Mais dans ce cas on a des doublons **ET** 2 personnes qui ont rentré 2 fois le "2ème test" en changeant aussi de filière. Ou Il est donc impossible de rattacher ces questionnaires à un "test 1".
-Ce qui est très très bizarre, est que les lignes 3 et 5 sont IDENTIQUES aux lignes 4 et 6. Ce qu'on peut faire, est prendre la moyenne des lignes 3-5 et 4-6. Le même approche nous sera utile pour gérer les IDs *non aberrants* doublons qui sont les suivants:
 
+On semble avoir 1 IDE et 1 MG, qui ont un doublon de "2ème test". Si on regarde avec attention la ligne 3 et 4 sont identiques, avec une "filière" différente. Si la ligne 3 et 4 étaient par exemple "IDE" et la ligne 5 et 6 étaient "medecine generale" on aurait identifié des doublons --\> problème résolu. Mais dans ce cas on a des doublons **ET** 2 personnes qui ont rentré 2 fois le "2ème test" en changeant aussi de filière. Ou Il est donc impossible de rattacher ces questionnaires à un "test 1". Ce qui est très très bizarre, est que les lignes 3 et 5 sont IDENTIQUES aux lignes 4 et 6. Ce qu'on peut faire, est prendre la moyenne des lignes 3-5 et 4-6. Le même approche nous sera utile pour gérer les IDs *non aberrants* doublons qui sont les suivants:
 
-```{r IDs non aberrants de trop}
+```{r IDs_non_aberrants_de_trop}
 data %>% 
     filter(str_detect(id, "[:digit:]{1}[:alpha:]{2}[:digit:]{2}")) %>%
     group_by(id) %>%
@@ -286,23 +269,20 @@ data %>%
                              scrollX = T
                              ))
 
-
 data = data%>%
      group_by(id, test, filiere) %>%
      summarise(across(s1q1:last_col(), ~mean(., na.rm = TRUE)), .groups = "drop")
 ```
-  
 
-Vu que "ID" ne suffit pour identifier uniquement les lignes, si on prend "ID" + "test" + "filiere" et on fait la moyenne des lignes ambigues on devrait s'en sortir pas mal.
-Cela nous laisse avec `r nrow(data)` questionnaires. <br>
-Bon, on sait dejà qu'on a des IDs qui apparaissent trop souvent mais si on prend ID-filiere, est-ce que maintenant on a max 2 lignes par couple ID-filiere?
-  
+Vu que "ID" ne suffit pour identifier uniquement les lignes, si on prend "ID" + "test" + "filiere" et on fait la moyenne des lignes ambigues on devrait s'en sortir pas mal. Cela nous laisse avec `r nrow(data)` questionnaires. <br> Bon, on sait dejà qu'on a des IDs qui apparaissent trop souvent mais si on prend ID-filiere, est-ce que maintenant on a max 2 lignes par couple ID-filiere?
 
-```{r uniques ID-FILIERE}
-data %>% 
+```{r uniques_ID_FILIERE}
+df = data %>% 
     group_by(id,filiere) %>%
     summarise(n=n()) %>% 
-    arrange(desc(n)) %>%
+    arrange(desc(n)) 
+
+df %>%
     datatable(options = list(pageLength = 10,
                              #dom = 't',
                              scrollX = TRUE,
@@ -311,11 +291,10 @@ data %>%
                              ))
 
 ```
-<br>
 
-Oui! Nous avons maintenant 413 identité uniques données par ID+FILIERE. Vu qu'on a besoin de "filière" pour identifier les gens, on va esclure les lignes où "filière" n'est pas renseigné.
+Oui! Nous avons maintenant `r nrow(df)` identités uniques données par ID+FILIERE. Vu qu'on a besoin de "filière" pour identifier les gens, on va exclure les lignes où "filière" n'est pas renseigné.
 
-```{r}
+```{r dropping_filiere_na}
 filiere_na = data %>% filter(is.na(filiere)) %>% nrow()
 
 # REMOVING MISSING "filiere" rows
@@ -328,122 +307,99 @@ ids = data %>% distinct(id,filiere) %>% nrow
 
 ```
 
-On exclu donc `r filiere_na` lignes car valeur manquante. On est maintenant à **`r questionnaires`** questionnaires pour **`r ids`** identités. Voyons combien de gens on peut apparier.
+On exclu donc `r filiere_na` lignes car filière non renseignée On est maintenant à **`r questionnaires`** questionnaires pour **`r ids`** identités. Voyons de récapituler comment on fait le trie sur les questionnaires.
 
-<br>
-```{r how many paired questionnaires}
-data %>% 
-    group_by(id,filiere) %>%
-    summarise(n=n(), .groups="drop") %>% 
-    arrange(desc(n)) %$%
-    table(n) %>%
-    pander(caption = "Nb questionnaires appariés et non")
-```
-
-<br>
-
-```{r echo=FALSE, fig.cap=caption, out.width=800, out.height=800}
+```{r flowchart, echo=FALSE, fig.cap=caption, out.width=800, out.height=800}
 # Caption/Description.
 caption <- "Flowchart inclusion questionnaires"
 
 # Path or URL to the figure.
-knitr::include_graphics("flowchart.png")
+knitr::include_graphics("flow.svg")
 ```
-<br>
-#########
-<div class="mxgraph" style="max-width:100%;border:1px solid transparent;" data-mxgraph="{&quot;highlight&quot;:&quot;#0000ff&quot;,&quot;nav&quot;:true,&quot;resize&quot;:true,&quot;toolbar&quot;:&quot;zoom layers tags lightbox&quot;,&quot;edit&quot;:&quot;_blank&quot;,&quot;xml&quot;:&quot;&lt;mxfile&gt;&lt;diagram id=\&quot;px3hoDM4YlP0pP7gUFGq\&quot; name=\&quot;Page-1\&quot;&gt;&lt;mxGraphModel dx=\&quot;680\&quot; dy=\&quot;568\&quot; grid=\&quot;1\&quot; gridSize=\&quot;10\&quot; guides=\&quot;1\&quot; tooltips=\&quot;1\&quot; connect=\&quot;1\&quot; arrows=\&quot;1\&quot; fold=\&quot;1\&quot; page=\&quot;1\&quot; pageScale=\&quot;1\&quot; pageWidth=\&quot;850\&quot; pageHeight=\&quot;1100\&quot; math=\&quot;0\&quot; shadow=\&quot;0\&quot;&gt;&lt;root&gt;&lt;mxCell id=\&quot;0\&quot;/&gt;&lt;mxCell id=\&quot;1\&quot; parent=\&quot;0\&quot;/&gt;&lt;mxCell id=\&quot;4\&quot; value=\&quot;removing missing IDs (n=4)\&quot; style=\&quot;edgeStyle=none;html=1;\&quot; parent=\&quot;1\&quot; source=\&quot;2\&quot; target=\&quot;3\&quot; edge=\&quot;1\&quot;&gt;&lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=\&quot;2\&quot; value=\&quot;870 questionnaires rentrés\&quot; style=\&quot;rounded=1;whiteSpace=wrap;html=1;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;&lt;mxGeometry x=\&quot;365\&quot; y=\&quot;40\&quot; width=\&quot;120\&quot; height=\&quot;60\&quot; as=\&quot;geometry\&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=\&quot;6\&quot; value=\&quot;exclusion questionnaires vides (n=16)\&quot; style=\&quot;edgeStyle=none;html=1;\&quot; parent=\&quot;1\&quot; source=\&quot;3\&quot; target=\&quot;5\&quot; edge=\&quot;1\&quot;&gt;&lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=\&quot;3\&quot; value=\&quot;866 questionnaires&amp;lt;br&amp;gt;380 IDs\&quot; style=\&quot;whiteSpace=wrap;html=1;rounded=1;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;&lt;mxGeometry x=\&quot;365\&quot; y=\&quot;180\&quot; width=\&quot;120\&quot; height=\&quot;60\&quot; as=\&quot;geometry\&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=\&quot;8\&quot; value=\&quot;Les IDs ne sont pas suffisants donc je regroupe pour ID + FILIERE.&amp;lt;br&amp;gt;Si pour une triplette ID + FILIERE j&#39;ai tjrs plus que 2 lignes, je prends la moyenne\&quot; style=\&quot;edgeStyle=none;html=1;\&quot; parent=\&quot;1\&quot; source=\&quot;5\&quot; target=\&quot;7\&quot; edge=\&quot;1\&quot;&gt;&lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=\&quot;5\&quot; value=\&quot;850 questionnaires&amp;lt;br&amp;gt;379 IDs\&quot; style=\&quot;whiteSpace=wrap;html=1;rounded=1;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;&lt;mxGeometry x=\&quot;365\&quot; y=\&quot;320\&quot; width=\&quot;120\&quot; height=\&quot;60\&quot; as=\&quot;geometry\&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=\&quot;10\&quot; value=\&quot;Si on a besoin de ID+FILIERE pour identifier les lignes, on va exclure les lignes où la valeur &amp;quot;filière&amp;quot; n&#39;est pas reinseignée (n=9)\&quot; style=\&quot;edgeStyle=none;html=1;\&quot; parent=\&quot;1\&quot; source=\&quot;7\&quot; target=\&quot;9\&quot; edge=\&quot;1\&quot;&gt;&lt;mxGeometry relative=\&quot;1\&quot; as=\&quot;geometry\&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=\&quot;7\&quot; value=\&quot;776 questionnaires\&quot; style=\&quot;whiteSpace=wrap;html=1;rounded=1;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;&lt;mxGeometry x=\&quot;365\&quot; y=\&quot;460\&quot; width=\&quot;120\&quot; height=\&quot;60\&quot; as=\&quot;geometry\&quot;/&gt;&lt;/mxCell&gt;&lt;mxCell id=\&quot;9\&quot; value=\&quot;767 questionnaires&amp;lt;br&amp;gt;413 identités uniques données par ID+FILIERE\&quot; style=\&quot;whiteSpace=wrap;html=1;rounded=1;\&quot; parent=\&quot;1\&quot; vertex=\&quot;1\&quot;&gt;&lt;mxGeometry x=\&quot;230\&quot; y=\&quot;600\&quot; width=\&quot;390\&quot; height=\&quot;60\&quot; as=\&quot;geometry\&quot;/&gt;&lt;/mxCell&gt;&lt;/root&gt;&lt;/mxGraphModel&gt;&lt;/diagram&gt;&lt;/mxfile&gt;&quot;}"></div>
-<script type="text/javascript" src="https://viewer.diagrams.net/js/viewer-static.min.js"></script>
 
-## Nb et repartition sujets participants
-```{r }
+Les critères d\'exclusion ont donc été les suivants:
+
+-   ID manquant
+
+-   filière manquante
+
+-   questionnaires vides
+
+Si on a toujours plusieurs lignes pour une triplette ID-TEST-FILIERE, on fait la moyenne des scores.
+
+```{r how_many_paired_questionnaires}
+# Creating table, this will be usefull later aswell
+tab_paired_questionnaires <- data %>%
+  group_by(id, filiere) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  arrange(desc(n)) %$%
+  table(filiere, n) %>%
+  data.frame() %>%
+  pivot_wider(names_from = n, values_from = Freq) %>%
+  setNames(c("Filiere", "Tests non apparies", "Tests apparies"))
+
+# Rendering table via pander()
+tab_paired_questionnaires %>%
+  adorn_totals()  %>%
+  pander(caption = "Nb questionnaires appariés et non")
+
+```
+
+## Sujets participants - Nb et distribution par filière
+
+```{r sujets_distribution_par_filiere}
 
 data %>% distinct(id,filiere) %$% 
     table(filiere) %>% 
     as.data.frame() %>% 
     mutate("%" = round(Freq/sum(Freq)*100, 2)) %>% 
+    rename("Nb sujet participants" = Freq) %>% 
     adorn_totals() %>% 
     pander(caption = "**Repartition sujets par filière**")
 ```
-<br>
 
 ## Missing values
 
-Voyons sur tout l'ensemble de tests, combien de données manquantes on a. Ce sont des "vraies" données manquantes **OU** des "NSP" qui n'était pas pertinents pour la question et vraisemblablement pris pour des "Ne sait pas".
+Voyons sur tout l'ensemble de tests, combien de données manquantes on a. Ce sont des "vraies" données manquantes **OU** des "NSP" qui n'était pas pertinents pour la question et vraisemblablement pris pour des *"Ne sait pas".*
 
 ```{r missing values}
-
-
 table(data$na_counts) %>% 
     as.data.frame() %>% 
-    mutate("%" = round(Freq/sum(Freq)*100, 2)) %>% 
+    mutate("%" = round(as.numeric(Freq/sum(Freq)*100), 2),
+           Var1 = round(as.numeric(as.character(Var1)),2)) %>% 
     rename("Nb missing values" = Var1) %>% 
     pander(caption = "**Nb de valeurs manquantes par questionnaire**")
 
 ```
 
-On voit que les tests sont bien complets globalement sauf 16 questionnaires qui sont **complétement** vides. Ils sont des doublons dus à des enregistrements vides.
+On voit que les tests sont bien complets globalement. Seulement 10 questionnaires ont **\>=3** valeurs manquantes. Les **"0.33"** et **"0.5"** valeurs manquantes sont le resultat d'avoir fait la moyenne sur plusieurs lignes lorsque on avait plusieurs lignes pour ID-test-filiere. <br>
 
-<br>
+Par exemple, le sujet avec **"0.33"** valeurs manquantes, probablement avait 3 lignes, avec 1 valeur manquante sur les 3 lignes donc "0.33" valeurs manquantes en moyenne. <br>
 
-<br>
+### Valeurs manquantes, nb test appariés et non by filière
 
-### Missing values par filière
-
-On peut voir que la repartition des valeurs manquantes par filière est en ligne avec la repartition des sujets par filière. Donc il n'y a pas une filière qui a laissé le questionnaire "plus vide" que les autres.
+Tableau très intéressant. On obsèrve que la distribution des sujets par filière et la distribution des *tests appariés* par filière est pratiquement identique, donc les tests appariés gardent la representativité de la population generale. <br>
 
 ```{r}
 data %>%
   group_by(filiere) %>%
-  summarise(Freq = sum(na_counts)) %>%
-  mutate("%" = round(Freq / sum(Freq) * 100, 2)) %>%
-    adorn_totals() %>% 
-  pander(caption = "**Valeurs manquantes par filière**", align = "center")
-
+  summarise(nb_questionnaires = n(), 
+            valeurs_manquantes = as.integer(sum(na_counts))
+  ) %>%
+  left_join(tab_paired_questionnaires, by = c("filiere" = "Filiere")) %>% 
+  mutate(across(
+      c(nb_questionnaires, valeurs_manquantes, `Tests non apparies`, `Tests apparies`),
+      ~paste0(.x, " (", round(.*100/sum(.),2), "%)", sep = ""))
+      ) %>% 
+  select(-ends_with("%")) %>% 
+  datatable(options = list(
+    pageLength = 10,
+    scrollX = TRUE,
+    width = "auto",
+    scrollX = TRUE
+  ))
 
 ```
-
-**!!!!!!** Quelque chose ne va pas, on a 379 sujets et 800+ questionnaires (on devrait en avoir **au max** 379\*2). Dans le tableau suivant on voit qu'on a 199 sujets avec **au moins** 3 entrées (et j'ai déjà exclu les 16 dont je parlais avant).
-
-```{r message = F}
-x <- data %>%
-  group_by(id, filiere) %>%
-  summarise(n = n()) %>%
-  arrange(desc(n)) %>%
-  filter(n > 2) %>%
-  pull(id) 
-
-data %>%
-    filter(id %in% x) %>%
-    arrange(id, filiere, test) %>%
-    datatable(options = list(pageLength = 10,
-                             #dom = 't',
-                             scrollX = TRUE,
-                             width = "auto",
-                             scrollX = T
-                             )
-              ) 
-```
-
-Les entrées supplementaires ne sont pas des "doublons", les valeurs ne sont pas les mêmes. Je vais donc prendre la moyenne de ces valeurs. Ci dessous le résultat, on est à 766 lignes alor que notre max theorique est 758. Il y a forcement des gens qui se sont enregistrés avec plus qu'un ID (j'ai renommé la variable "A1").   
-Ca ne m'inquiète pas pour les tests appariés, je ne pense pas que des gens ont 2*2 tests appariés mais je controllerai.
-
-```{r}
-data %>% 
-    group_by(id,test,filiere) %>% 
-    summarise(across(s1q1:s7q2,mean,na.rm=T)) %>% 
-    mutate(na_counts = rowSums(across(s1q1:s7q2, is.na))) %>% 
-    datatable(options = list(pageLength = 10,
-                             #dom = 't',
-                             scrollX = TRUE,
-                             width = "auto",
-                             scrollX = T
-                             )
-              )
-```
-
-<br>
-
-<br>
 
 # Tests appariés
 
@@ -451,7 +407,7 @@ data %>%
 # DF with id-filiere-pre-post pour les tests stat
 test_data <- data %>%
   group_by(id, filiere, test) %>%
-  summarise(mean_score = mean(c_across(s1q1:s7q2), na.rm = T)) %>%
+  summarise(mean_score = mean(c_across(s1q1:s7q2), na.rm = T), .groups = "drop") %>%
   pivot_wider(names_from = "test", values_from = "mean_score") %>%
     filter(!is.na(post),!is.na(pre)) %>% distinct
 
