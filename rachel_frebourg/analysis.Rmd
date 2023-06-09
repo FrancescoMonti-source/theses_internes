@@ -100,6 +100,8 @@ library(kableExtra)
 library(pander)
 library(DT)
 library(janitor)
+library(broom)
+library(fmckage)
 
 conflicted::conflicts_prefer(dplyr::filter)
 
@@ -362,7 +364,7 @@ data %>% distinct(id,filiere) %$%
 
 Voyons sur tout l'ensemble de tests, combien de données manquantes on a. Ce sont des "vraies" données manquantes **OU** des "NSP" qui n'était pas pertinents pour la question et vraisemblablement pris pour des *"Ne sait pas".*
 
-```{r missing values}
+```{r exploring_missing_values_frequencies}
 table(data$na_counts) %>% 
     as.data.frame() %>% 
     mutate("%" = round(as.numeric(Freq/sum(Freq)*100), 2),
@@ -372,15 +374,13 @@ table(data$na_counts) %>%
 
 ```
 
-On voit que les tests sont bien complets globalement. Seulement 10 questionnaires ont **\>=3** valeurs manquantes. Les **"0.33"** et **"0.5"** valeurs manquantes sont le resultat d'avoir fait la moyenne sur plusieurs lignes lorsque on avait plusieurs lignes pour ID-test-filiere. <br>
-
-Par exemple, le sujet avec **"0.33"** valeurs manquantes, probablement avait 3 lignes, avec 1 valeur manquante sur les 3 lignes donc "0.33" valeurs manquantes en moyenne. <br>
+On voit que les tests sont bien complets globalement. Seulement 10 questionnaires ont **\>=3** valeurs manquantes. Les **"0.33"** et **"0.5"** valeurs manquantes sont le resultat d'avoir fait la moyenne sur plusieurs lignes lorsque on avait plusieurs lignes pour ID-test-filiere. Par exemple, le sujet avec **"0.33"** valeurs manquantes, probablement avait 3 lignes, avec 1 valeur manquante sur les 3 lignes donc "0.33" valeurs manquantes en moyenne.
 
 ### Valeurs manquantes, nb test appariés et non by filière
 
-Tableau très intéressant. On obsèrve que la distribution des sujets par filière et la distribution des *tests appariés* par filière est pratiquement identique, donc les tests appariés gardent la representativité de la population generale. <br>
+Tableau très intéressant. On obsèrve que la distribution des sujets par filière et la distribution des *tests appariés* par filière est pratiquement identique, donc les tests appariés gardent la représentativité de la population générale.
 
-```{r}
+```{r summarise_by_filiere}
 data %>%
   group_by(filiere) %>%
   summarise(nb_questionnaires = n(), 
@@ -401,36 +401,39 @@ data %>%
 
 ```
 
-# Tests appariés
+# Tests stat
 
-```{r Cas appariés par filière}
+```{r analysis}
 # DF with id-filiere-pre-post pour les tests stat
-test_data <- data %>%
+paired_data <- data %>%
   group_by(id, filiere, test) %>%
   summarise(mean_score = mean(c_across(s1q1:s7q2), na.rm = T), .groups = "drop") %>%
   pivot_wider(names_from = "test", values_from = "mean_score") %>%
     filter(!is.na(post),!is.na(pre)) %>% distinct
 
-# paired cases by filiere
-test_data %$% 
-    table(filiere) %>% 
-    as.data.frame() %>% 
-    mutate("%" = round(Freq/sum(Freq)*100, 2)) %>% 
-    adorn_totals() %>% 
-    pander(caption = "Cas appariés par filière")
-```
-
-Pour ces pourcentages les denominateur est "total de tests appariés" et non le "nombre total de tests. Donc, les IDE, representent 38.14% des tests appariés disponibles.
-
-Mais, il y a carrement plus d'IDE que les autres filières! Oui, bien sur. Voyons
-
-# Tests stat
-
-```{r analysis}
 # PRE vs POST, toutes filieres confondues
-t.test(test_data$post,test_data$pre, paired=T)
+t.test(paired_data$post,paired_data$pre, paired=T)
 
 # PRE vs POST, filiere par filiere 
-t.test(test_data$post[test_data$filiere=="IDE"],test_data$pre[test_data$filiere=="IDE"], paired=T)
+t.test(paired_data$post[paired_data$filiere=="IDE"],
+       paired_data$pre[paired_data$filiere=="IDE"],
+       paired=T)
+
+
+
+# Perform the t-test and save the results
+ttest_results <- t.test(paired_data$post[paired_data$filiere=="IDE"],
+       paired_data$pre[paired_data$filiere=="IDE"],
+       paired=T)
+
+# Tidy the t-test results using broom
+tidy_results <- tidy(ttest_results)
+
+# Format and print the tidy results
+tidy_results %>%
+    mutate(p.value = pval_format(p.value)) %>% 
+    mutate_if(is.numeric, ~format(., digits = 2)) %>%
+    select(c(estimate, p.value, conf.low, conf.high, method)) %>% 
+    pander()
 
 ```
