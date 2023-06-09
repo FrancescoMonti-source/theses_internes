@@ -1,0 +1,55 @@
+---
+output:
+  html_document:
+    toc: true
+    toc_float:
+      collapsed: true
+---
+
+# Chapter 1
+
+## Section 1-1
+
+### Figure 1-1-1
+
+### Figure 1-1-2
+
+# Chapter 2
+
+## Section 2-1
+
+### Figure 2-1-1
+
+### Figure 2-1-2
+
+---
+
+Select the menu on the left to expand / collapse table of contents (TOC)
+entries. Press button below to collapse all TOC except the top level headings.
+
+<button id="btnCollapseHeading" onclick="collapseTOC()">Collapse sub-headings</button>
+
+If you only want to collapse level 3 headings press this button.
+
+<button id="btnCollapseLevel3" onclick="collapseLevel3()">Collapse Level 3 only</button>
+
+<script>
+function collapseTOC() {
+  var x = document.getElementsByClassName("tocify-subheader");
+  var i;
+  for (i = 0; i < x.length; i++) {
+      x[i].style.display = "none";
+  }
+}
+
+function collapseLevel3() {
+  var x = document.getElementsByClassName("tocify-subheader");
+  var i;
+  for (i = 0; i < x.length; i++) {
+      if (x[i].getAttribute("data-tag") == "3") {
+        x[i].style.display = "none";
+      }
+  }
+}
+
+</script>
