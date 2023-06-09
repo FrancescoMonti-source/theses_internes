@@ -1,0 +1,81 @@
+---
+title: "Thèse Camille Perreard 06/2023"
+author: "Francesco MONTI"
+date: "2023-06-01"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries}
+library(readxl)
+library(tidyverse)
+library(stringr)
+library(magrittr)
+```
+
+```{r functions}
+scale_and_round <- function(x, factor) {
+    round(x / (100 / factor))
+}
+```
+
+```{r loading data, echo=FALSE}
+data <- read_excel("H:/Interne.Francesco/Classeur1.xlsx", sheet = "Feuil2")
+
+```
+
+```{r}
+data <- data %>%
+  rename(question = "...1")
+
+data = data %>%
+    mutate(across(-question, ~ ifelse(grepl("%", .), parse_number(gsub("%", "", .)), as.numeric(.)))) %>%
+    mutate(across(-question, ~ ifelse(. > 100, ./10, .))) %>%
+    mutate(across(-question, ~ ifelse(. <= 1, .*100, .))) %>%
+    print(n = 52)
+
+data_bk = data
+```
+
+```{r}
+data = data %>%
+    mutate(
+        across(
+            starts_with("tout"),
+            ~ scale_and_round(., 51)
+        ),
+        across(
+            starts_with("ide"),
+            ~ scale_and_round(., 22)
+        ),
+        across(
+            starts_with("mg"),
+            ~ scale_and_round(., 12)
+        ),
+        across(
+            starts_with("orto"),
+            ~ scale_and_round(., 8)
+        ),
+        across(
+            starts_with("pharma"),
+            ~ scale_and_round(., 7)
+        ),
+        across(
+            starts_with("sf"),
+            ~ scale_and_round(., 2)
+        )
+    )
+
+n_rebuilt = data
+
+to_check = data %>%
+    group_by(question, tout_pre, tout_post) %>%
+    summarize(
+        pre = sum(across(contains("pre"))),
+        post = sum(across(contains("post")))
+    ) %>% filter(tout_pre!=pre|tout_post!=post)
+```
+

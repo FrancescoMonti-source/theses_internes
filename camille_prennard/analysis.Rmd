@@ -1,81 +1,94 @@
 ---
-title: "Thèse Camille Perreard 06/2023"
+title: "Untitled"
 author: "Francesco MONTI"
-date: "2023-06-01"
+date: "`r Sys.Date()`"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+# Packages ------------------------------------------------------------------
 
-```{r libraries}
-library(readxl)
-library(tidyverse)
-library(stringr)
+library(tidyverse)     # The main "tidyverse" packages.
 library(magrittr)
+library(openxlsx)
+library(ggplot2)
+library(pander)        # Function `pander()` to report results of statistical analysis.
+library(knitr)         # Function `kable()` to convert data frames into tables for reports.
+library(DT)            # Interactive tables for HTML documents (DataTables).
+library(gt)            # Easily Create Presentation-Ready Display Tables.
+library(flextable)     # Functions for Tabular Reporting.
+library(stringr)
+
+# Settings ------------------------------------------------------------------
+
+Sys.getlocale()
+
+# Chunk options
+knitr::opts_chunk$set(
+  echo       = TRUE,    # Should blocks with program code be shown in knitted documents?
+  eval       = TRUE,    # Should program code be evaluated?
+  fig.height = 3,       # Default height for plots.
+  fig.width  = 5,       # Default width for plots.
+  fig.align  = "center" # Default alignment for plots in knitted documents.
+)
+
+# Options to format numbers
+options(        # For more detais see ?options
+  scipen = 8,   # Show at least 8 digits in numbers before converting to exponential notation.
+    digits = 3,   # Number of significant digits to print numbers.
+    OutDec = ".", # Default decimal separator to print numbers.
+    knitr.kable.NA = NA # Replacement for NA values in knitr::kable()
+)
+
+# Options for package "pander"
+options(
+  pander = modifyList(
+    pander::panderOptions(),
+    list(
+      digits = getOption("digits", default = 3),
+      round  = Inf,
+      decimal.mark = getOption("OutDec", default = "."),
+      big.mark = "",
+      keep.trailing.zeros = TRUE,
+      missing = getOption("knitr.kable.NA", default = NA),
+      table.style = "multiline", # "multiline", "grid", "simple", "rmarkdown"
+      table.split.table = 80,
+      table.split.cells = 30,
+      table.continues   = "Table continues below",
+      table.continues.affix = "(continued below)",
+      p.wrap   = "_",
+      p.sep    = ", ",
+      p.copula = " and ",
+      knitr.auto.asis = TRUE
+    ))
+)
+
+
+ggplot2::theme_set(ggplot2::theme_bw()) # Default ggplot2 theme
+
+conflicted::conflict_prefer("filter", "dplyr")
+conflicted::conflict_prefer("lag",    "dplyr")
+
+set.seed(20230604) # Initial condition for random processes.
 ```
 
-```{r functions}
-scale_and_round <- function(x, factor) {
-    round(x / (100 / factor))
-}
+
+```{r load, echo = F}
+pre = read.xlsx("Résultats pré test.xlsx")
+post = read.xlsx("Résultats post test.xlsx")
+
+pre = pre %>% 
+    select(-(2:7)) %>% 
+    rename_all(~ str_replace_all(., "\\.", "_")) %>% 
+    tibble() %>% 
+    mutate(`Quel_est_votre_formation_?` = replace_na(`Quel_est_votre_formation_?`,
+                                                     "Soins infirmiers"))
+
+
+
+
+
+
+
+
 ```
-
-```{r loading data, echo=FALSE}
-data <- read_excel("H:/Interne.Francesco/Classeur1.xlsx", sheet = "Feuil2")
-
-```
-
-```{r}
-data <- data %>%
-  rename(question = "...1")
-
-data = data %>%
-    mutate(across(-question, ~ ifelse(grepl("%", .), parse_number(gsub("%", "", .)), as.numeric(.)))) %>%
-    mutate(across(-question, ~ ifelse(. > 100, ./10, .))) %>%
-    mutate(across(-question, ~ ifelse(. <= 1, .*100, .))) %>%
-    print(n = 52)
-
-data_bk = data
-```
-
-```{r}
-data = data %>%
-    mutate(
-        across(
-            starts_with("tout"),
-            ~ scale_and_round(., 51)
-        ),
-        across(
-            starts_with("ide"),
-            ~ scale_and_round(., 22)
-        ),
-        across(
-            starts_with("mg"),
-            ~ scale_and_round(., 12)
-        ),
-        across(
-            starts_with("orto"),
-            ~ scale_and_round(., 8)
-        ),
-        across(
-            starts_with("pharma"),
-            ~ scale_and_round(., 7)
-        ),
-        across(
-            starts_with("sf"),
-            ~ scale_and_round(., 2)
-        )
-    )
-
-n_rebuilt = data
-
-to_check = data %>%
-    group_by(question, tout_pre, tout_post) %>%
-    summarize(
-        pre = sum(across(contains("pre"))),
-        post = sum(across(contains("post")))
-    ) %>% filter(tout_pre!=pre|tout_post!=post)
-```
-
