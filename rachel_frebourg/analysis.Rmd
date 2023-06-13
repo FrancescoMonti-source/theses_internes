@@ -4,19 +4,14 @@ subtitle: "Comparaison avant-après niveau interdisciplinarité chez les pro de 
 author:   "Francesco MONTI"
 date:     "`r Sys.time()`" # Automatic date and time
 output:
-                            # Note that for engine = "mathjax", url = "local" will use a local version of 
-                            # MathJax (which is copied into the output directory).
-                            # For example,
-                            #        See Pandoc's Manual about Math in HTML for the details about Pandoc 
-                            #        supported methods.
     bookdown::html_document2: 
                                 # It can be a list of
-        collapse: "hide"
+        collapse: "show"
         toc:         yes        # Table of contents (toc): yes no
         toc_float:   yes        # yes no
         toc_depth:   5              # 1 2 3 4 5
         highlight : pygments      # default tango kate monochrome espresso pygments...
-        highlight_downlit : FALSE      # TRUE to use the downlit package as syntax highlight engine to highlight 
+        highlight_downlit : True      # TRUE to use the downlit package as syntax highlight engine to highlight 
                                        # inline code and R code chunks (including providing hyperlinks to function 
                                        # documentation). The package needs to be installed to use this feature.
         code_folding:    "hide"     # none show hide
@@ -54,13 +49,14 @@ editor_options:
 ```{r chunk options, echo=F}
 # Chunk options
 knitr::opts_chunk$set(
-  echo       = T,    # Should blocks with program code be shown in knitted documents?
+  echo       = F,    # Should blocks with program code be shown in knitted documents?
   eval       = TRUE,    # Should program code be evaluated?
   fig.height = 6,       # Default height for plots.
   fig.width  = 10,       # Default width for plots.
   fig.align  = "center", # Default alignment for plots in knitted documents.
   warning = F,
-  tidy = T
+  tidy = T,
+  fig.cap = " "
 )
 
 ```
@@ -90,7 +86,7 @@ post = read.xlsx("Copie de resultats Q2 copie.xlsx", sheet = 1)
 pre = read.xlsx("Copie de resultats Q1 copie.xlsx", sheet = 1)
 ```
 
-```{r data_management, include = F}
+```{r data management, include = F}
 # Colnames() to lowercase
 colnames(pre) = tolower(colnames(pre))
 colnames(post) = tolower(colnames(post))
@@ -141,7 +137,7 @@ data = data %>% filter(!is.na(id)) %>%
 
 ## Exploration du database
 
-```{r filtering_out_invidalid_questionnaires, include = F}
+```{r filtering out invidalid questionnaires, include = F}
 rows_1 = nrow(data)
 unique_ids_1 = n_distinct(data$id)
 
@@ -167,14 +163,13 @@ A ce point là on a `r rows_1` quesitonnaires mais nous n'avons pas une idée pr
 
 `r empty_q` on peut les exclure parce que ils sont vides et 4 parce que l'ID est manquant, pour arriver à `r rows_3` questionnaires et `r unique_ids_3` IDs. Mettons maintenant les doublons en évidence.
 
-```{r IDs_with_too_many_entries}
+```{r IDs with too many entries}
 data %>% 
     group_by(id) %>% 
     summarise(n=n()) %>%
     arrange(desc(n)) %>%
     datatable(options = list(pageLength = 10,
                              #dom = 't',
-                             scrollX = TRUE,
                              width = "auto",
                              scrollX = T
                              ))
@@ -187,21 +182,20 @@ Comme tu peux le voir on semble avoir `r problematic_IDs` IDs presents **au moin
 
 Voyons pour combien de lignes ce *pattern* est respecté:
 
-```{r "looking_for_IDs_not_following_the_rules"}
+```{r looking for IDs not following the rules}
 str_detect(data$id, "[:digit:]{1}[:alpha:]{2}[:digit:]{2}") %>% 
     table %>%
-    pander
+    pander()
 ```
 
 Cela nous dit que **même si** on regarde seulement les gens qui ont respecté la procedure pour la création des IDs, on à tjrs des lignes de trop. D'abord, regardons les entrés des gens qui ont tapé un ID au pif (donc les "falses").
 
-```{r "dataframe_IDs_aberrants"}
+```{r dataframe IDs aberrants}
 data %>% 
     filter(!str_detect(id, "[:digit:]{1}[:alpha:]{2}[:digit:]{2}")) %>%
     arrange(id) %>% 
     datatable(options = list(pageLength = 10,
                              #dom = 't',
-                             scrollX = TRUE,
                              width = "auto",
                              scrollX = T
                              ))
@@ -209,7 +203,7 @@ data %>%
 
 Néanmoins, s'ils ont utilisé 2 fois **le même** identifiant *aberrant* on pourra quand même les apparier. Voyons donc les IDs qui apparaissent **\>2** fois. Les IDs *aberrants* qui apparaissent **2** fois on peut les utiliser, les IDs qui apparaissent qu'une seule fois, idem, on peut les garder pour la partie descriptive (carrément ils ne sera pas possible de les utiliser pour la comparaison avant-après).
 
-```{r "IDs_aberrants_presentes_2plus_fois"}
+```{r IDs aberrants presentes 2plus fois}
 data %>% 
     filter(!str_detect(id, "[:digit:]{1}[:alpha:]{2}[:digit:]{2}")) %>%
     group_by(id) %>%
@@ -217,7 +211,6 @@ data %>%
     arrange(desc(n)) %>%
     datatable(options = list(pageLength = 10,
                              #dom = 't',
-                             scrollX = TRUE,
                              width = "auto",
                              scrollX = T
                              ))
@@ -225,12 +218,11 @@ data %>%
 
 On voit que le seul ID problematique parmi les *aberrants* est **"12345"**. Voyons les lignes qui correspondent à cet ID.
 
-```{r filtering_on_ID_12345}
+```{r filtering on ID 12345}
 data %>% 
     filter(id=="12345") %>%
     datatable(options = list(pageLength = 10,
                              #dom = 't',
-                             scrollX = TRUE,
                              width = "auto",
                              scrollX = T
                              ))
@@ -242,7 +234,7 @@ A ce point, avant de passer à regarder l'ensemble des tests appariés, on peut 
 
 ## Données manquantes
 
-```{r all_tests_NAs}
+```{r all tests NAs}
 data %>% 
   group_by(test) %>%
   count(na_counts) %>% 
@@ -255,21 +247,22 @@ data %>%
   pack_rows(index = c("Post"=6,"Pre"=7))
 ```
 
-## Distribution "filière" filière (1er fichier)
+## Distribution "filière" (1er fichier)
 
-```{r 1st_test_distribution_filiere}
+```{r 1st test distribution filiere}
 g = pre %>% 
     ggplot(aes(x=filiere))+
     geom_bar()+
     labs(title = "Distribution par filière au moment du 1er test")+
-    scale_y_continuous(breaks = seq(0, 1000, 10))
+    scale_y_continuous(breaks = seq(0, 1000, 10))+
+  theme(title = element_text(face = "bold"))
 
 ggplotly()
 ```
 
 ## Distribution score moyen du questionnaire
 
-```{r all_tests_dispersion_measures}
+```{r all tests dispersionmeasures}
     # describe tables
 rbind(describe(data$score, fast = T),
       describe(data$score[data$test=="pre"], fast = T),
@@ -291,12 +284,12 @@ pre %>%
   kable_paper()
 ```
 
-```{r 1st_test_score_histogramme}
+```{r 1st test score histogramme}
 g = data %>% 
  # pivot_longer(cols = c("post", "pre"), names_to = "test", values_to = "score") %>%
   mutate(score = round(score, 2)) %>%
   mutate(score = factor(score, levels = rev(sort(unique(score))))) %>%
-  mutate(score = cut(as.numeric(as.character(score)), breaks = 12)) %>%
+  mutate(score = cut(as.numeric(as.character(score)), breaks = seq(1,7,0.5))) %>%
   ggplot(aes(x = score)) +
   geom_bar(aes(fill = test), alpha = 0.3, position = "identity") +
   scale_y_continuous(breaks = seq(0, 1000, 10)) +
@@ -311,7 +304,7 @@ ggplotly()
 
 Prenons maintenant la population composée seulement par des IDs uniques (qui apparaissent au max 1 fois par test).
 
-```{r preparing_data_id_uniques}
+```{r preparing data id uniques}
 post = read.xlsx("Copie de resultats Q2 copie.xlsx", sheet = 1)
 pre = read.xlsx("Copie de resultats Q1 copie.xlsx", sheet = 1)
 
@@ -358,11 +351,11 @@ data = rbind(pre, post) %>%
     mutate(score = round(rowMeans(across(s1q1:s7q2),na.rm=T),2))
 ```
 
-## Taille population et distribution par filière
+## Population et distribution par filière
 
 Nous avons un total de `r n_distinct(data$id)` sujets, repartis de la façon suivante. Attention, ceux ne sont pas encore les sujets qui ont fait les 2 tests, ceux ci sont tous les IDs qui apparaissent au max 1 fois par test.
 
-```{r sujets_distribution_par_filiere}
+```{r id uniques distribution par filiere}
 data %>% 
   distinct(id,filiere) %$% 
     table(filiere,useNA = "ifany") %>% 
@@ -370,48 +363,12 @@ data %>%
     mutate("%" = round(Freq/sum(Freq)*100, 3)) %>% 
     rename("Nb sujet participants" = Freq) %>% 
     adorn_totals() %>% 
-    kable(caption = "**Repartition sujets par filière**", digit=2) %>% 
+    kable(caption = "<b>Repartition sujets par filière<b>", digit=2) %>% 
   kable_paper()
 
 ```
 
-Voyons qui sont les 8 sujets sans filière:
-
-```{r}
-x = data %>% filter(is.na(filiere))  %>% pull(id)
-
-data %>% 
-    filter(id %in% x) %>% 
-    relocate(test, .after=id) %>% 
-    datatable(options = list(
-      pageLength = 10,
-      scrollX = TRUE,
-      width = "auto",
-      scrollX = TRUE
-  ))
-```
-
-Apparémment ce sont des gens qui ont fait seulement le 2ème test.
-
-## Données manquantes
-Voyons sur tout l'ensemble de tests, combien de données manquantes on a. Ce sont des "vraies" données manquantes **OU** des "NSP" qui n'était pas pertinents pour la question et vraisemblablement pris pour des *"Ne sait pas".*
-
-```{r exploring_missing_values_frequencies}
-table(data$na_counts) %>% 
-    as.data.frame() %>% 
-    mutate("%" = round(as.numeric(Freq/sum(Freq)*100), 2),
-           Var1 = round(as.numeric(as.character(Var1)),2)) %>% 
-    rename("Nb missing values" = Var1) %>% 
-    kable(caption = "**Nb de valeurs manquantes par questionnaire**") %>% 
-  kable_paper()
-
-```
-
-On voit que les tests sont bien complets globalement. Seulement 7 questionnaires ont **\>=3** valeurs manquantes.
-
-## Distribution "filière"
-
-```{r}
+```{r id uniques histogramme filiere}
 g = data %>% 
     ggplot(aes(x=filiere))+
     geom_bar()+
@@ -424,6 +381,39 @@ ggplotly()
 ```
 
 La différence par rapport à la distribution précédente est presque invisible, ce qui est bien. Nous ne sommes pas en train d'introduire des biais comme involontairement sélectionner une sous-population spécifique.
+Voyons maintenant qui sont les 8 sujets sans filière:
+
+```{r}
+x = data %>% filter(is.na(filiere))  %>% pull(id)
+
+data %>% 
+    filter(id %in% x) %>% 
+    relocate(test, .after=id) %>% 
+    datatable(options = list(
+      pageLength = 10,
+      scrollX = TRUE
+  ))
+```
+
+Apparémment ce sont des gens qui ont fait seulement le 2ème test.
+
+## Données manquantes
+Voyons sur tout l'ensemble de tests, combien de données manquantes on a. Ce sont des "vraies" données manquantes **OU** des "NSP" qui n'était pas pertinents pour la question et vraisemblablement pris pour des *"Ne sait pas".*
+
+```{r}
+table(data$na_counts) %>% 
+    as.data.frame() %>% 
+    mutate("%" = round(as.numeric(Freq/sum(Freq)*100), 2),
+           Var1 = round(as.numeric(as.character(Var1)),2)) %>% 
+    rename("Nb missing values" = Var1) %>% 
+    kable(caption = "<b> Nb de valeurs manquantes par questionnaire<b>") %>% 
+  kable_styling(full_width = T) %>% 
+  kable_paper()
+
+```
+
+On voit que les tests sont bien complets globalement. Seulement 7 questionnaires ont **\>=3** valeurs manquantes.
+
 
 ## Distribution score moyen
 ```{r}
@@ -434,10 +424,12 @@ rbind(describe(data$score, fast = T),
     rename(deviation_standard = sd, ecart_type = se) %>% 
     kable(caption = "<b>Score - ID uniques - Mesures de dispersion<b>", 
           digits = 3) %>%
-    kable_styling(full_width = T, ) %>% 
+    kable_styling(full_width = T) %>% 
     kable_paper()
+```
 
-    # idem by filière
+```{r}
+# idem by filière
 pre %>%
     mutate(score = round(rowMeans(across(s1q1:s7q2),na.rm=T),2)) %>% 
     group_by(filiere) %>% 
@@ -450,12 +442,12 @@ pre %>%
     kable_paper()
 ```
 
-```{r id_uniques_score_distribution}
+```{r id uniques score distribution}
 g = data %>% 
  # pivot_longer(cols = c("post", "pre"), names_to = "test", values_to = "score") %>%
   mutate(score = round(score, 2)) %>%
   mutate(score = factor(score, levels = rev(sort(unique(score))))) %>%
-  mutate(score = cut(as.numeric(as.character(score)), breaks = 12)) %>%
+  mutate(score = cut(as.numeric(as.character(score)), breaks = seq(1,7,0.5))) %>%
   ggplot(aes(x = score)) +
   geom_bar(aes(fill = test), alpha = 0.3, position = "identity") +
   scale_y_continuous(breaks = seq(0, 1000, 10))+
@@ -468,12 +460,9 @@ ggplotly()
 
 ```
 
+J'ai un peu reformatté le tableau suivant que j'avais déjà fait.
 
-# IDs appariés {.tabset}
-
-```{r summarise_by_filiere}
-
-
+```{r}
 # Creating table paired_questionnaires
 tab_paired_questionnaires <- data %>%
   group_by(id, filiere) %>%
@@ -487,33 +476,94 @@ tab_paired_questionnaires <- data %>%
 
 data %>%
   group_by(filiere) %>%
-  summarise(id = n_distinct(id),nb_questionnaires = n(), 
+  summarise(id = n_distinct(id), 
             valeurs_manquantes = as.integer(sum(na_counts,na.rm=T))
   ) %>%
   left_join(tab_paired_questionnaires, by = c("filiere" = "Filiere")) %>% 
+  adorn_totals() %>% 
+  rowwise %>% 
+  mutate(nb_questionnaires = sum(id, `Tests apparies`, na.rm=T))  %>% 
+  relocate("nb_questionnaires", .after = "id") %>% 
+  ungroup %>% 
   mutate(across(c(id:`Tests apparies`),
-                ~paste0(.x, " (", round(.*100/sum(.,na.rm=T),2), "%)", 
-                        sep = ""))
+                ~paste0(.x, " (", round(.*100/sum(.[1:7],na.rm=T),2), "%)", 
+                        sep = "")),
+         
+      ) %>% 
+  select(-ends_with("%")) %>%
+  kable %>% 
+  kable_paper()
+  # datatable(options = list(
+  #   pageLength = 10,
+  #   scrollX = TRUE,
+  #   width = "auto",
+  #   scrollX = TRUE
+  # ))
+```
+
+
+
+# IDs appariés {.tabset}
+## Population et distribution par filière
+```{r filtro questionari apparie}
+# creating population
+id_index = data %>% group_by(id) %>% count %>% filter(n==2) %>% pull(id)
+
+data = data %>% filter(id %in% id_index)
+
+# table describing population
+data %>%
+  group_by(filiere) %>%
+  summarise(id = n_distinct(id), 
+            valeurs_manquantes = as.integer(sum(na_counts,na.rm=T))
+  ) %>%
+  adorn_totals() %>% 
+  rowwise %>% 
+  mutate(nb_questionnaires = id*2)  %>% 
+  relocate("nb_questionnaires", .after = "id") %>% 
+  ungroup %>% 
+  mutate(across(c(id:valeurs_manquantes),
+                ~paste0(.x, " (", round(.*100/sum(.[1:6],na.rm=T),2), "%)", 
+                        sep = "")),
+         
       ) %>% 
   select(-ends_with("%")) %>% 
+  knitr::kable(caption = " <b>Population de tests appariés<b>") %>%
+  kable_paper()
+
+
+
+```
+
+## Données manquantes
+```{r tests appariés NAs}
+table(data$na_counts) %>% 
+    as.data.frame() %>% 
+    mutate("%" = round(as.numeric(Freq/sum(Freq)*100), 2),
+           Var1 = round(as.numeric(as.character(Var1)),2)) %>% 
+    rename("Nb missing values" = Var1) %>% 
+    kable(caption = " <b>Nb de valeurs manquantes par questionnaire<b>") %>%
+  kable_styling() %>% 
+  kable_paper() 
+
+apply(data,2,function(x) sum(is.na(x))) %>% 
+  data.frame() %>% rownames_to_column() %>% 
+  rename("variable" = "rowname", "n"= ".") %>% 
   datatable(options = list(
     pageLength = 10,
     scrollX = TRUE,
     width = "auto",
-    scrollX = TRUE
-  ))
+    scrollX = T
+    ),
+    caption = "Missing values by variable")
 
 ```
 
-On voit qu'il y a quelque chose de bizarre avec la dernière ligne du tableau. Voyons.
 
-```{r}
+## Distribution score moyen 
+### Par question
 
-```
-
-## Distribution score moyen par question
-
-```{r}
+```{r gfdfgdfg}
 data %>% 
   pivot_longer(cols = s1q1:s7q2, names_to = "question", values_to = "value") %>% 
   group_by(question) %>% 
@@ -523,82 +573,94 @@ data %>%
     pageLength = 10,
     scrollX = TRUE,
     width = "auto",
-    scrollX = TRUE,
-    caption = "Score - Mésures de distribution par question"
-  ))
+    scrollX = TRUE),
+    caption = " Tests appariés - Score - Mésures de distribution par question"
+  )
   
 ```
 
-# Statistiques
+```{r asdfada}
+rbind(describe(data$score, fast = T),
+      describe(data$score[data$test=="pre"], fast = T),
+      describe(data$score[data$test=="post"], fast = T)) %>% 
+    as.data.frame(row.names = c("Ensemble", "pre", "post")) %>%
+    rename(deviation_standard = sd, ecart_type = se) %>% 
+    select(-vars) %>% 
+    kable(caption = "<b>Tests appariés - Mesures de dispersion<b>", 
+          digits = 3) %>%
+    kable_styling(full_width = T, ) %>% 
+    kable_paper()
+```
 
-## Descriptives {.tabset}
+```{r}
+data %>% 
+  group_by(filiere,test) %>% 
+  summarise(describe(score, fast = T)) %>% ungroup() %>% 
+  select(-filiere, -vars) %>% 
+  kable(digit=3, caption = "<b>Tests appariés - Mesures de dispersion by filière<b>") %>%
+  pack_rows(index = c("IDE"=2, 
+                      "Maieutique" = 2,
+                      "Medecine generale" = 2,
+                      "MKE" = 2,
+                      "Orthophonie" = 2,
+                      "Pharmacie" = 2)) %>% 
+  kable_paper()
+```
+
+
+
+### Par questionnaire
+```{r}
+g = data %>% 
+  mutate(score = round(score, 2)) %>%
+  mutate(score = factor(score, levels = rev(sort(unique(score))))) %>%
+  mutate(score = cut(as.numeric(as.character(score)), breaks = seq(1,7,0.5))) %>%
+  ggplot(aes(x = score)) +
+  geom_bar(aes(fill = test), alpha = 0.3, position = "identity") +
+  scale_y_continuous(breaks = seq(0, 1000, 10))+
+    scale_x_discrete(na.translate = F)+
+  #coord_flip() +
+  labs(title = "Distribution score moyen") +
+  theme(title = element_text(face = "bold"))
+
+ggplotly(g)
+```
+
+#### Par questionnaire by filière
+```{r}
+g = data %>% 
+ # pivot_longer(cols = c("post", "pre"), names_to = "test", values_to = "score") %>%
+  mutate(score = round(score, 2)) %>%
+  mutate(score = factor(score, levels = rev(sort(unique(score))))) %>%
+  mutate(score = cut(as.numeric(as.character(score)), breaks = seq(1,7,0.5))) %>%
+  ggplot(aes(x = score)) +
+  geom_bar(aes(fill = test), alpha = 0.3, position = "identity") +
+  scale_y_continuous(breaks = seq(0, 1000, 10))+
+    scale_x_discrete(na.translate = F)+
+  coord_flip() +
+  labs(title = "Distribution score moyen",
+       fill = "Test") +
+  theme(title = element_text(face = "bold"))+
+  facet_wrap(~filiere)
+
+ggplotly(g)
+```
+
+
+
+
+# Test de Wilcoxon sur données appariées
 
 ```{r t-test_tous_confondus}
 # DF with id-filiere-pre-post pour les tests stat
-paired_data <- data %>%
-  group_by(id, filiere, test) %>%
-  summarise(mean_score = mean(c_across(s1q1:s7q2), na.rm = T), .groups = "drop") %>%
-  pivot_wider(names_from = "test", values_from = "mean_score") %>%
-    filter(!is.na(post),!is.na(pre)) %>% distinct
+paired_data <- data %>% 
+  relocate(test, .after=last_col()) %>%
+  select(-(s1q1:na_counts)) %>%
+  pivot_wider(names_from = "test", values_from = "score")
 
 ```
 
-### Mesures de dispersion - tests appariés
-
-```{r dispersion_measures_paired_tests}
-# paired tests -------------------------------------
-    # describe tables
-paired_data %>%
-  pivot_longer(
-    cols = c("pre", "post"),
-    names_to = "time",
-    values_to = "value"
-  ) %>%
-  summarise(
-    filiere = "Overall",
-    time = "Overall",
-    mean = mean(value, na.rm = TRUE),
-    median = median(value, na.rm = TRUE),
-    deviation_standard = sd(value, na.rm = TRUE),
-    ecart_type = sd(value, na.rm = TRUE) / sqrt(sum(!is.na(value)))
-    ) %>% 
-    mutate(across(is.numeric,round,2)) %>% 
-    kable(caption = "Tests appariés - mesures de dispersion") %>%
-    kable_styling(full_width = T)
-
-    # idem by filière
-paired_data %>%
-    pivot_longer(cols = c("pre", "post"),
-                 names_to = "time",
-                 values_to = "value") %>% group_by(filiere, time) %>%
-    summarise(mean = mean(value, na.rm = TRUE),
-              median = median(value, na.rm = TRUE),
-              deviation_standard = sd(value, na.rm = TRUE),
-              ecart_type = sd(value, na.rm = TRUE) / sqrt(sum(!is.na(value)))) %>%
-    mutate(across(is.numeric,round,2)) %>% 
-    kable(caption = "Tests appariés - mesures de dispersion by filière") %>%
-    kable_styling(full_width = T)
-
-
-```
-
-### Test de Wilcoxon sur données appariées
-
-Pour realiser un test de student, une parmi les plusieurs conditions de validité est que la variable qu'on étudie doit suivre la *loi normale*: sa distribution a une forme en cloche simmetrique. Or, on voit que dans notre cas, ce n'est pas du tout le cas. Cela nous rend "impossible" ("" parce que en vrai je peux quand meme le lancer sans soucis le test et très probablement personne te demanderait si tu as verifié les conditions de validité du test) utiliser le *t student* et on va devoir "se contenter" d'un test *non-parametrique* (quand la variable étudie ne suit pas une distribution précise, comme la loi normale par example).
-
-```{r distribution_scores_by_filiere, fig.height=10}
-paired_data %>%
-  pivot_longer(cols = c("post", "pre"), names_to = "test", values_to = "score") %>%
-  mutate(score = round(score, 2)) %>%
-  mutate(score = factor(score, levels = rev(sort(unique(score))))) %>%
-  mutate(score = cut(as.numeric(as.character(score)), breaks = 20)) %>%
-  ggplot(aes(x = score)) +
-  geom_bar(aes(fill = test), alpha = 0.3, position = "identity") +
-  scale_y_continuous(breaks = seq(0, 1000, 10)) +
-  coord_flip() +
-  labs(title = "Mean questionnaire score distribution") +
-  facet_wrap(vars(filiere), ncol = 2)
-```
+Pour realiser un test de student, une parmi les plusieurs conditions de validité est que la variable qu'on étudie doit suivre la *loi normale*: sa distribution a une forme en cloche simmetrique. Or, on a vu à la fin du chapitre 3 que ce n'est pas du tout le cas. Cela nous rend "impossible" ("" parce que en vrai je peux quand meme le lancer sans soucis le test et très probablement personne te demanderait si tu as verifié les conditions de validité du test) utiliser le *t student* et on va devoir "se contenter" d'un test *non-parametrique* (quand la variable étudie ne suit pas une distribution précise, comme la loi normale par example).
 
 L'equivalent non parametrique du *t student apparié* est le test de rang signé de wilcoxon avec correction de continuité. Je me repète, le test du rang signé de Wilcoxon est un test statistique non paramétrique qui compare deux échantillons apparentés ou des mesures répétées sur un seul échantillon afin d'évaluer si les rangs moyens de leur population diffèrent (c'est-à-dire qu'il s'agit d'un test de différence par paires). Il peut être utilisé comme alternative au test t de Student lorsque la population ne peut pas être supposée normalement distribuée.
 
@@ -616,6 +678,9 @@ Je vais lancer le test sur l'ensemble de la population et t'expliquer le résult
 wilcox.test(paired_data$post,
                         paired_data$pre, paired = T
                        )
+
+
+# t.test(paired_data$post,paired_data$pre,paired = T, var.equal = F)
 ```
 
 -   **"Test de rang signé de Wilcoxon avec correction de continuité"** : Ceci indique le test spécifique utilisé. La partie "correction de continuité" est une technique permettant d'ajuster le test de rang signé de Wilcoxon pour tenir compte du fait que nous utilisons une version discrète d'une distribution continue.
@@ -632,7 +697,7 @@ En termes simples, le test indique qu'il existe une différence statistiquement 
 
 Je vais faire la même chose pour chaque filière prise singulièrement.
 
-```{r t.test_by_filiere, fig.height=10, eval=F}
+```{r t.test_by_filiere, fig.height=10}
 # initialising emtpty list
 results <- list()
 
@@ -646,10 +711,11 @@ results <- list()
  #   results[[index]] <- test
  # }
 
- for (index in unique(data$filiere)) {
+ for (index in unique(paired_data$filiere)) {
    test <- wilcox.test(paired_data$post[paired_data$filiere == index],
      paired_data$pre[paired_data$filiere == index],
      paired = T
+     #,var.equal = F
    )
 
    results[[index]] <- test
@@ -671,30 +737,6 @@ results <- list()
  # Merge the data frames in the list
  merged_df <- bind_rows(result_df, .id = "filiere")
 
- merged_df %>% pander()
+ merged_df %>% kable %>% kable_paper()
  
- # Print the merged data frame
- # merged_df %>%
- #   pivot_wider(values_from = conf, names_from = low_high_tag) %>%
- #   mutate(across(where(is.numeric), round, 3)) %>%
- #   left_join(tab_paired_questionnaires[c("Filiere", "Tests apparies")],
- #             by = c("filiere" = "Filiere")
- #   ) %>%
- #     arrange(filiere) %>%
- #     rename(n = "Tests apparies") %>%
- #     relocate(n, .after = "filiere") %>%
- #     relocate(method, .after = last_col()) %>%
- #     relocate(p.value, .after = last_col()) %>%
- #     mutate(n = paste(n, "/",
- #                    tab_paired_questionnaires$`Tests non apparies` +
- #                                         tab_paired_questionnaires$`Tests apparies`,
- #                    sep = "")) %>%
- # 
- #     datatable(options = list(pageLength = 10,
- #                              #dom = 't',
- #                              scrollX = TRUE,
- #                              width = "auto",
- #                              scrollX = T
- #                              ))
-
 ```
