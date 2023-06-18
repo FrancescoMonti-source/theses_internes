@@ -380,8 +380,7 @@ g = data %>%
 ggplotly()
 ```
 
-La différence par rapport à la distribution précédente est presque invisible, ce qui est bien. Nous ne sommes pas en train d'introduire des biais comme involontairement sélectionner une sous-population spécifique.
-Voyons maintenant qui sont les 8 sujets sans filière:
+La différence par rapport à la distribution précédente est presque invisible, ce qui est bien. Nous ne sommes pas en train d'introduire des biais comme involontairement sélectionner une sous-population spécifique. Voyons maintenant qui sont les 8 sujets sans filière:
 
 ```{r}
 x = data %>% filter(is.na(filiere))  %>% pull(id)
@@ -398,6 +397,7 @@ data %>%
 Apparémment ce sont des gens qui ont fait seulement le 2ème test.
 
 ## Données manquantes
+
 Voyons sur tout l'ensemble de tests, combien de données manquantes on a. Ce sont des "vraies" données manquantes **OU** des "NSP" qui n'était pas pertinents pour la question et vraisemblablement pris pour des *"Ne sait pas".*
 
 ```{r}
@@ -414,8 +414,8 @@ table(data$na_counts) %>%
 
 On voit que les tests sont bien complets globalement. Seulement 7 questionnaires ont **\>=3** valeurs manquantes.
 
-
 ## Distribution score moyen
+
 ```{r}
 rbind(describe(data$score, fast = T),
       describe(data$score[data$test=="pre"], fast = T),
@@ -501,10 +501,10 @@ data %>%
   # ))
 ```
 
-
-
 # IDs appariés {.tabset}
+
 ## Population et distribution par filière
+
 ```{r filtro questionari apparie}
 # creating population
 id_index = data %>% group_by(id) %>% count %>% filter(n==2) %>% pull(id)
@@ -536,6 +536,7 @@ data %>%
 ```
 
 ## Données manquantes
+
 ```{r tests appariés NAs}
 table(data$na_counts) %>% 
     as.data.frame() %>% 
@@ -559,8 +560,8 @@ apply(data,2,function(x) sum(is.na(x))) %>%
 
 ```
 
+## Distribution score moyen
 
-## Distribution score moyen 
 ### Par question
 
 ```{r gfdfgdfg}
@@ -607,9 +608,8 @@ data %>%
   kable_paper()
 ```
 
-
-
 ### Par questionnaire
+
 ```{r}
 g = data %>% 
   mutate(score = round(score, 2)) %>%
@@ -627,6 +627,7 @@ ggplotly(g)
 ```
 
 #### Par questionnaire by filière
+
 ```{r}
 g = data %>% 
  # pivot_longer(cols = c("post", "pre"), names_to = "test", values_to = "score") %>%
@@ -646,10 +647,9 @@ g = data %>%
 ggplotly(g)
 ```
 
+# Tests stat {.tabset}
 
-
-
-# Test de Wilcoxon sur données appariées
+## Test de Wilcoxon sur données appariées
 
 ```{r t-test_tous_confondus}
 # DF with id-filiere-pre-post pour les tests stat
@@ -740,3 +740,48 @@ results <- list()
  merged_df %>% kable %>% kable_paper()
  
 ```
+
+## Test de permutation
+
+```{r message=F}
+# Install and load the "exactRankTests" package
+library(exactRankTests)
+
+# Set up your paired data
+group1 <- c(3, 4, 2, 1)   # Sample 1
+group2 <- c(4, 5, 2, 3)   # Sample 2
+
+# Calculate the observed test statistic
+observed_statistic <- mean(paired_data$post - paired_data$pre)  # Mean difference as an example
+
+# Set the number of permutations
+n_permutations <- 100000
+
+# Perform the paired permutation test
+perm_result <- perm.test(paired_data$post, paired_data$pre, paired = TRUE, alternative = "two.sided", 
+                         method = "exact", exact_options = list(nperm = n_permutations))
+
+# Extract the p-value from the permutation test result
+p_value <- perm_result$p.value
+
+# Print the observed test statistic and p-value
+cat("Observed test statistic:", observed_statistic, "\n")
+cat("P-value:", pval_format(p_value), "\n")
+
+```
+
+Voici comment fonctionne un test de permutation, étape par étape :
+
+Formuler l'hypothèse : on commence par énoncer l'hypothèse nulle (H₀) et l'hypothèse alternative (H₁). L'hypothèse nulle suppose qu'il n'y a pas de différence entre les groupes, tandis que l'hypothèse alternative suggère qu'il y a une différence significative.
+
+Combiner et mélanger les données : Prenez les mesures (hauteurs) des deux groupes et combinez-les en un seul ensemble de données. Ensuite, mélangez ou permutez au hasard les étiquettes (groupe A et groupe B) associées aux mesures. Ce mélange rompt toute association entre les groupes.
+
+Repeter les étapes 2 et 3 : Répétez les étapes 2 et 3 plusieurs fois (par exemple, 1 000 fois ou plus) pour créer une distribution de statistiques de test sous l'hypothèse nulle. Chaque fois que vous mélangez les données et calculez la statistique de test, vous simulez ce qui se passerait s'il n'y avait pas de véritable différence entre les groupes.
+
+Comparez la statistique de test observée : On compare la statistique de test observée (calculée à partir des données originales, non mélangées) à la distribution des statistiques de test obtenues à partir des permutations. Il s'agit essentiellement de se demander : "Quelle est l'ampleur de la statistique de test observée par rapport à ce que l'on pourrait attendre du seul hasard ?"
+
+Calculer la valeur p : Calculez la valeur p en déterminant la proportion de statistiques de test permutées qui sont plus extrêmes (plus grandes ou plus petites) que la statistique de test observée. Cette valeur p représente la probabilité d'observer une statistique de test aussi extrême, ou plus extrême, que celle qu'on a obtenue, en supposant que l'hypothèse nulle est vraie. Une petite valeur p suggère qu'il est peu probable que la différence observée soit le fruit du hasard.
+
+Sur la base de la valeur p et du niveau de signification qu'on a défini (habituellement α = 0,05), on décide de rejeter ou non l'hypothèse nulle. Si la valeur p est inférieure au seuil de signification, on rejete l'hypothèse nulle et concluez qu'il existe des preuves d'une différence significative entre les groupes.
+
+C'est l'idée de base d'un test de permutation. En mélangeant au hasard les étiquettes des groupes et en comparant la statistique de test observée à la distribution des statistiques de test permutées, les tests de permutation permettent d'évaluer la probabilité d'observer la différence observée sous l'hypothèse nulle d'absence de différence. Il s'agit d'une technique qui ne repose pas sur des hypothèses strictes concernant la distribution des données, ce qui la rend applicable à un large éventail de scénarios. Donc on a pas le problème de la non-normalité comme avec le t student et on a pas le problème des ex aequo comme avec wilcoxon. Quand possible, il est préférable appliquer les autres tests parce qu'ils sont plus puissants.
