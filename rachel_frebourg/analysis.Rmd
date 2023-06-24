@@ -785,3 +785,96 @@ Calculer la valeur p : Calculez la valeur p en déterminant la proportion de sta
 Sur la base de la valeur p et du niveau de signification qu'on a défini (habituellement α = 0,05), on décide de rejeter ou non l'hypothèse nulle. Si la valeur p est inférieure au seuil de signification, on rejete l'hypothèse nulle et concluez qu'il existe des preuves d'une différence significative entre les groupes.
 
 C'est l'idée de base d'un test de permutation. En mélangeant au hasard les étiquettes des groupes et en comparant la statistique de test observée à la distribution des statistiques de test permutées, les tests de permutation permettent d'évaluer la probabilité d'observer la différence observée sous l'hypothèse nulle d'absence de différence. Il s'agit d'une technique qui ne repose pas sur des hypothèses strictes concernant la distribution des données, ce qui la rend applicable à un large éventail de scénarios. Donc on a pas le problème de la non-normalité comme avec le t student et on a pas le problème des ex aequo comme avec wilcoxon. Quand possible, il est préférable appliquer les autres tests parce qu'ils sont plus puissants.
+
+
+# Extras
+```{r message=F}
+# Reloading data and starting from scratch (cause previously, transforming answers into numbers erased "NSP"s)-------------
+post = read.xlsx("Copie de resultats Q2 copie.xlsx", sheet = 1)
+pre = read.xlsx("Copie de resultats Q1 copie.xlsx", sheet = 1)
+
+colnames(pre) = tolower(colnames(pre))
+colnames(post) = tolower(colnames(post))
+
+# cleaning and preparing "pre" ----------------------------------
+pre = pre %>% 
+    select(-contains(c("id","submitdate","lastpage","startlanguage"))) %>% 
+    rename("filiere"=b1, "id" = a1) %>% 
+    mutate(test = "pre") %>% 
+    mutate(across(s1q1:s7q2, as.character)) %>% 
+    mutate(filiere = case_when(filiere == "étudiant(e) en maïeutique" ~ "maieutique",
+                               filiere == "étudiant(e) en orthophonie" ~ "orthophonie",
+                               filiere == "étudiant(e) en pharmacie" ~ "pharmacie",
+                               filiere == "étudiant(e) IDE" ~ "IDE",
+                               filiere == "étudiant(e) MKE" ~ "MKE",
+                               filiere == "interne de médecine générale" ~ "medecine generale",
+                               TRUE ~ NA_character_
+                               )
+           )
+
+# cleaning and preparing "post"
+post = post %>%
+    filter(!is.na(submitdate)) %>% 
+    select(-contains(c("id","submitdate","lastpage","startlanguage","x26","x27"))) %>% 
+    rename("id" = a1)  %>% 
+    left_join(pre[,c("id","filiere")], by = "id") %>% 
+    relocate(filiere, .after = "id") %>% 
+    mutate(test = "post") %>% 
+    mutate(across(s1q1:s7q2, as.character))
+
+# excluding IDs appearing more than 1 time 
+pre_index = pre %>% group_by(id) %>% count %>% filter(n==1) %>% pull(id)
+post_index = post %>% group_by(id) %>% count %>% filter(n==1) %>% pull(id)
+
+pre = pre %>% filter(id %in% pre_index)
+post = post %>% filter(id %in% post_index)
+
+
+# Nb réponses NSP par filière en pré-test-------------
+pre %>%
+    mutate(across(s1q1:s7q2, function(x) ifelse(x=="NSP",1,0))) %>%
+    mutate(nsp = rowSums(across(s1q1:s7q2))) %>% 
+    group_by(filiere) %>%
+    summarise(NSP = sum(nsp,na.rm=T)) %>% 
+    kable(caption = "Nb réponses NSP par filière en pré-test") %>% 
+    kable_paper()
+
+## nombre de réponses NSP par question et la filière quand c’est en pré test-------------
+
+pre %>%
+    mutate(across(s1q1:s7q2, as.character)) %>% 
+    pivot_longer(cols = s1q1:s7q2, names_to = "question", values_to = "answer") %>% 
+    group_by(question,filiere) %>% 
+    summarise(n = sum(answer=="NSP",na.rm=T)) %>%
+    filter(n!=0) %>% 
+    kable(caption = "Nb réponses NSP par question ET par filière en pré-test") %>% 
+    kable_paper()
+
+## sur combien de questionnaires apparaissent la réponse NSP en pré et post tes-------------
+
+pre %>% 
+    mutate(across(s1q1:s7q2,as.character)) %>%  
+    mutate(across(s1q1:s7q2,function(x) x=="NSP")) %>% 
+    mutate(n = rowSums(across(s1q1:s7q2),na.rm=T)) %>% 
+    filter(n>=1) %>% 
+    count(filiere) %>% 
+    mutate(Frequence_absolue = paste(round(n*100/sum(n),2),"%"), 
+           Frequence_relative_uniques_ID_par_filiere = paste(round(n*100/c(129,41,18,75,20,34),2),"%")) %>% 
+    kable(caption = "Nb de questionnaires avec des NSP en pré-test", digits = 2) %>% 
+    kable_paper()
+
+
+post %>% distinct() %>% 
+    mutate(across(s1q1:s7q2,as.character)) %>%  
+    mutate(across(s1q1:s7q2,function(x) x=="NSP")) %>% 
+    mutate(n = rowSums(across(s1q1:s7q2),na.rm=T)) %>% 
+    filter(n>=1) %>% 
+    count(filiere) %>% 
+    mutate(Frequence_absolue = paste(n*100/sum(n),"%"), 
+           Frequence_relative_uniques_ID_par_filiere = paste(round(n*100/c(101,32,65,16),2),"%")) %>% 
+    kable(caption = "Nb de questionnaires avec des NSP en post-test", digits = 2) %>% 
+    kable_paper()
+
+```
+
+
