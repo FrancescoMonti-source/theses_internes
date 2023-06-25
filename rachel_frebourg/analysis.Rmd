@@ -786,8 +786,10 @@ Sur la base de la valeur p et du niveau de signification qu'on a défini (habitu
 
 C'est l'idée de base d'un test de permutation. En mélangeant au hasard les étiquettes des groupes et en comparant la statistique de test observée à la distribution des statistiques de test permutées, les tests de permutation permettent d'évaluer la probabilité d'observer la différence observée sous l'hypothèse nulle d'absence de différence. Il s'agit d'une technique qui ne repose pas sur des hypothèses strictes concernant la distribution des données, ce qui la rend applicable à un large éventail de scénarios. Donc on a pas le problème de la non-normalité comme avec le t student et on a pas le problème des ex aequo comme avec wilcoxon. Quand possible, il est préférable appliquer les autres tests parce qu'ils sont plus puissants.
 
+# Extras {.tabset}
 
-# Extras
+## ID uniques
+
 ```{r message=F}
 # Reloading data and starting from scratch (cause previously, transforming answers into numbers erased "NSP"s)-------------
 post = read.xlsx("Copie de resultats Q2 copie.xlsx", sheet = 1)
@@ -830,28 +832,48 @@ pre = pre %>% filter(id %in% pre_index)
 post = post %>% filter(id %in% post_index)
 
 
-# Nb réponses NSP par filière en pré-test-------------
+# Nb réponses NSP par filière-------------
+# PRE test
 pre %>%
     mutate(across(s1q1:s7q2, function(x) ifelse(x=="NSP",1,0))) %>%
     mutate(nsp = rowSums(across(s1q1:s7q2))) %>% 
     group_by(filiere) %>%
     summarise(NSP = sum(nsp,na.rm=T)) %>% 
-    kable(caption = "Nb réponses NSP par filière en pré-test") %>% 
+    kable(caption = "Nb réponses NSP par filière en PRE-test") %>% 
+    kable_paper()
+# POST test
+post %>%
+    mutate(across(s1q1:s7q2, function(x) ifelse(x=="NSP",1,0))) %>%
+    mutate(nsp = rowSums(across(s1q1:s7q2))) %>% 
+    group_by(filiere) %>%
+    summarise(NSP = sum(nsp,na.rm=T)) %>% 
+    kable(caption = "Nb réponses NSP par filière en POST-test") %>% 
     kable_paper()
 
-## nombre de réponses NSP par question et la filière quand c’est en pré test-------------
-
+## nombre de réponses NSP par question et la filière -------------
+# PRE test
 pre %>%
     mutate(across(s1q1:s7q2, as.character)) %>% 
     pivot_longer(cols = s1q1:s7q2, names_to = "question", values_to = "answer") %>% 
     group_by(question,filiere) %>% 
     summarise(n = sum(answer=="NSP",na.rm=T)) %>%
     filter(n!=0) %>% 
-    kable(caption = "Nb réponses NSP par question ET par filière en pré-test") %>% 
+    kable(caption = "Nb réponses NSP par question ET par filière en PRE-test") %>% 
     kable_paper()
 
-## sur combien de questionnaires apparaissent la réponse NSP en pré et post tes-------------
+# POST test
+post %>%
+    mutate(across(s1q1:s7q2, as.character)) %>% 
+    pivot_longer(cols = s1q1:s7q2, names_to = "question", values_to = "answer") %>% 
+    group_by(question,filiere) %>% 
+    summarise(n = sum(answer=="NSP",na.rm=T)) %>%
+    filter(n!=0) %>% 
+    kable(caption = "Nb réponses NSP par question ET par filière en POST-test") %>% 
+    kable_paper()
 
+
+## sur combien de questionnaires apparaissent la réponse NSP -------------
+# PRE test
 pre %>% 
     mutate(across(s1q1:s7q2,as.character)) %>%  
     mutate(across(s1q1:s7q2,function(x) x=="NSP")) %>% 
@@ -860,10 +882,10 @@ pre %>%
     count(filiere) %>% 
     mutate(Frequence_absolue = paste(round(n*100/sum(n),2),"%"), 
            Frequence_relative_uniques_ID_par_filiere = paste(round(n*100/c(129,41,18,75,20,34),2),"%")) %>% 
-    kable(caption = "Nb de questionnaires avec des NSP en pré-test", digits = 2) %>% 
+    kable(caption = "Nb de questionnaires avec des NSP en PRE-test", digits = 2) %>% 
     kable_paper()
 
-
+# POST test
 post %>% distinct() %>% 
     mutate(across(s1q1:s7q2,as.character)) %>%  
     mutate(across(s1q1:s7q2,function(x) x=="NSP")) %>% 
@@ -872,9 +894,130 @@ post %>% distinct() %>%
     count(filiere) %>% 
     mutate(Frequence_absolue = paste(n*100/sum(n),"%"), 
            Frequence_relative_uniques_ID_par_filiere = paste(round(n*100/c(101,32,65,16),2),"%")) %>% 
-    kable(caption = "Nb de questionnaires avec des NSP en post-test", digits = 2) %>% 
+    kable(caption = "Nb de questionnaires avec des NSP en POST-test", digits = 2) %>% 
     kable_paper()
 
 ```
 
+## ID appariés
 
+```{r message = F}
+# Reloading data and starting from scratch (cause previously, transforming answers into numbers erased "NSP"s)-------------
+post = read.xlsx("Copie de resultats Q2 copie.xlsx", sheet = 1)
+pre = read.xlsx("Copie de resultats Q1 copie.xlsx", sheet = 1)
+
+# Colnames() to lowercase
+colnames(pre) = tolower(colnames(pre))
+colnames(post) = tolower(colnames(post))
+
+# MERGING PRE E POST 
+pre = pre %>% 
+    select(-contains(c("id","submitdate","lastpage","startlanguage"))) %>% 
+    rename("filiere"=b1, "id" = a1) %>% 
+    mutate(test = "pre") %>% 
+    mutate(across(s1q1:s7q2, as.character)) %>% 
+    mutate(filiere = case_when(filiere == "étudiant(e) en maïeutique" ~ "maieutique",
+                               filiere == "étudiant(e) en orthophonie" ~ "orthophonie",
+                               filiere == "étudiant(e) en pharmacie" ~ "pharmacie",
+                               filiere == "étudiant(e) IDE" ~ "IDE",
+                               filiere == "étudiant(e) MKE" ~ "MKE",
+                               filiere == "interne de médecine générale" ~ "medecine generale",
+                               TRUE ~ NA_character_
+                               )
+           )
+
+post = post %>%
+    filter(!is.na(submitdate)) %>% 
+    select(-contains(c("id","submitdate","lastpage","startlanguage","x26","x27"))) %>% 
+    rename("id" = a1) %>% 
+    left_join(pre[,c("id","filiere")], by = "id") %>% 
+    relocate(filiere, .after = "id") %>% 
+    mutate(test = "post") %>% 
+    mutate(across(s1q1:s7q2, as.character))
+
+# Merging
+data = rbind(pre,post) %>% tibble
+
+
+data = data %>% 
+    filter(!is.na(id)) %>% 
+    mutate(na_counts = rowSums(across(s1q1:s7q2, is.na))) %>%
+    filter(na_counts<20)
+
+id_index = data %>% group_by(id) %>% count %>% filter(n==2) %>% pull(id)
+
+data = data %>% filter(id %in% id_index)
+
+
+# Nb réponses NSP par filière en pré-test-------------
+# pre test
+data %>% 
+    filter(test=="pre") %>% 
+    mutate(across(s1q1:s7q2, function(x) ifelse(x=="NSP",1,0))) %>%
+    mutate(nsp = rowSums(across(s1q1:s7q2))) %>% 
+    group_by(filiere) %>%
+    summarise(NSP = sum(nsp,na.rm=T)) %>% 
+    kable(caption = "Nb réponses NSP par filière en PRE-test") %>% 
+    kable_paper()
+# post test
+data %>% 
+    filter(test=="post") %>% 
+    mutate(across(s1q1:s7q2, function(x) ifelse(x=="NSP",1,0))) %>%
+    mutate(nsp = rowSums(across(s1q1:s7q2))) %>% 
+    group_by(filiere) %>%
+    summarise(NSP = sum(nsp,na.rm=T)) %>% 
+    kable(caption = "Nb réponses NSP par filière en POST-test") %>% 
+    kable_paper()
+
+## nombre de réponses NSP par question et filière-------------
+# pre test
+data %>% 
+    filter(test=="pre") %>%
+    mutate(across(s1q1:s7q2, as.character)) %>% 
+    pivot_longer(cols = s1q1:s7q2, names_to = "question", values_to = "answer") %>% 
+    group_by(question,filiere) %>% 
+    summarise(n = sum(answer=="NSP",na.rm=T)) %>%
+    filter(n!=0) %>% 
+    kable(caption = "Nb réponses NSP par question ET par filière en PRE-test") %>% 
+    kable_paper()
+# post test
+data %>% 
+    filter(test=="post") %>%
+    mutate(across(s1q1:s7q2, as.character)) %>% 
+    pivot_longer(cols = s1q1:s7q2, names_to = "question", values_to = "answer") %>% 
+    group_by(question,filiere) %>% 
+    summarise(n = sum(answer=="NSP",na.rm=T)) %>%
+    filter(n!=0) %>% 
+    kable(caption = "Nb réponses NSP par question ET par filière en POST-test") %>% 
+    kable_paper()
+
+## sur combien de questionnaires apparaissent la réponse NSP-------------
+# PRE test
+data %>%
+    filter(test=="pre") %>% 
+    mutate(across(s1q1:s7q2,as.character)) %>%  
+    mutate(across(s1q1:s7q2,function(x) x=="NSP")) %>% 
+    mutate(n = rowSums(across(s1q1:s7q2),na.rm=T)) %>% 
+    filter(n>=1) %>% 
+    count(filiere) %>% 
+    mutate(Frequence_absolue = paste(round(n*100/sum(n),2),"%"), 
+           Frequence_relative_ID_apparies_par_filiere = paste(round(n*100/c(100,31,16,65,28),2),"%")) %>% 
+    kable(caption = "Nb de questionnaires avec des NSP en PRE-test", digits = 2) %>% 
+    kable_paper()
+
+# POST test
+data %>%
+    filter(test=="post") %>%
+    distinct() %>% 
+    mutate(across(s1q1:s7q2,as.character)) %>%  
+    mutate(across(s1q1:s7q2,function(x) x=="NSP")) %>% 
+    mutate(n = rowSums(across(s1q1:s7q2),na.rm=T)) %>% 
+    filter(n>=1) %>% 
+    count(filiere) %>% 
+    mutate(Frequence_absolue = paste(n*100/sum(n),"%"), 
+           Frequence_relative_ID_apparies_par_filiere = paste(round(n*100/c(100,31,65,16),2),"%")) %>% 
+    kable(caption = "Nb de questionnaires avec des NSP en POST-test", digits = 2) %>% 
+    kable_paper()
+
+
+```
