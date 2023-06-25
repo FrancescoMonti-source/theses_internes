@@ -268,7 +268,8 @@ rbind(describe(data$score, fast = T),
       describe(data$score[data$test=="pre"], fast = T),
       describe(data$score[data$test=="post"], fast = T)) %>% 
     as.data.frame(row.names = c("Ensemble", "pre", "post")) %>%
-    rename(deviation_standard = sd, ecart_type = se) %>% 
+    select(-vars,-se) %>% 
+    rename(deviation_standard = sd) %>% 
     kable(caption = "**Score - Tous tests confondus - Mesures de dispersion**",digits = 3) %>%
     kable_styling(full_width = T) %>% 
   kable_paper()
@@ -278,7 +279,8 @@ pre %>%
     mutate(score = round(rowMeans(across(s1q1:s7q2),na.rm=T),2)) %>% 
     group_by(filiere) %>% summarise(describe(score,fast=T)) %>% 
     as.data.frame(row.names = c("Ensemble", "pre", "post")) %>%
-    rename(deviation_standard = sd, ecart_type = se) %>% 
+    select(-vars,-se) %>% 
+    rename(deviation_standard = sd) %>% 
     kable(caption = "**score - 1er test - Mesures de dispersion by filière**",digits = 3)%>%
     kable_styling(full_width = T) %>% 
   kable_paper()
@@ -421,7 +423,8 @@ rbind(describe(data$score, fast = T),
       describe(data$score[data$test=="pre"], fast = T),
       describe(data$score[data$test=="post"], fast = T)) %>% 
     as.data.frame(row.names = c("Ensemble", "pre", "post")) %>%
-    rename(deviation_standard = sd, ecart_type = se) %>% 
+    select(-vars,-se) %>% 
+    rename(deviation_standard = sd) %>% 
     kable(caption = "<b>Score - ID uniques - Mesures de dispersion<b>", 
           digits = 3) %>%
     kable_styling(full_width = T) %>% 
@@ -435,7 +438,8 @@ pre %>%
     group_by(filiere) %>% 
     summarise(describe(score,fast=T)) %>% 
     as.data.frame(row.names = c("Ensemble", "pre", "post")) %>%
-    rename(deviation_standard = sd, ecart_type = se) %>% 
+    select(-vars,-se) %>% 
+    rename(deviation_standard = sd) %>% 
     kable(caption = "<b>Score - ID uniques - Mesures de dispersion by filière<b>",
           digits = 3) %>%
     kable_styling(full_width = T) %>% 
@@ -585,8 +589,8 @@ rbind(describe(data$score, fast = T),
       describe(data$score[data$test=="pre"], fast = T),
       describe(data$score[data$test=="post"], fast = T)) %>% 
     as.data.frame(row.names = c("Ensemble", "pre", "post")) %>%
-    rename(deviation_standard = sd, ecart_type = se) %>% 
-    select(-vars) %>% 
+    select(-vars,-se) %>% 
+    rename(deviation_standard = sd) %>% 
     kable(caption = "<b>Tests appariés - Mesures de dispersion<b>", 
           digits = 3) %>%
     kable_styling(full_width = T, ) %>% 
