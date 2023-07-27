@@ -21,3 +21,4 @@ table_prop <- function(x,useNA = "ifany", name = "var") {
     }
 
 
+

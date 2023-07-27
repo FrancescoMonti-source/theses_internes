@@ -36,16 +36,36 @@ output:
         template : "default"  
 ---
 
+```{r libraries, echo = F, include=F}
+library(tidyverse)     # The main "tidyverse" packages.
+library(conflicted)    # Get a warning/error if several functions with the same name exist.
+conflicts_prefer(dplyr::filter)
+library(magrittr)      # Operator %>% and additional pipe-friendly functions.
+library(pander)
+library(psych)
+library(knitr)         # Function `kable()` to convert data frames into tables for reports.
+#knitr::opts_knit$set(root.dir='..')
+
+library(kableExtra)        # Enhancing kable() possibilities
+library(DT)            # Interactive tables for HTML documents (DataTables).
+library(fmckage)
+library(janitor)
+
+library(ProjectTemplate)
+setwd("..")
+load.project()
+```
+
 ```{r options, echo = F}
 # Chunk options
 knitr::opts_chunk$set(
   echo       = TRUE,    # Should blocks with program code be shown in knitted documents?
   eval       = TRUE,    # Should program code be evaluated?
-  fig.height = 3,       # Default height for plots.
-  fig.width  = 5,       # Default width for plots.
-  fig.align  = "center" # Default alignment for plots in knitted documents.
+  fig.height = 6,       # Default height for plots.
+  fig.width  = 10,       # Default width for plots.
+  fig.align  = "center", # Default alignment for plots in knitted documents.
+  warning = F
 )
-knitr::opts_knit$set(root.dir='..')
 
 # Options to format numbers
 options(        # For more detais see ?options
@@ -62,23 +82,6 @@ new = theme_set(theme_minimal()) %>%
     axis.text.x = element_text(angle = 45, hjust = 1)
     )
 
-```
-
-```{r libraries, echo = F, include=F}
-library(tidyverse)     # The main "tidyverse" packages.
-library(conflicted)    # Get a warning/error if several functions with the same name exist.
-conflicts_prefer(dplyr::filter)
-library(magrittr)      # Operator %>% and additional pipe-friendly functions.
-library(pander)
-library(psych)
-library(knitr)         # Function `kable()` to convert data frames into tables for reports.
-library(kableExtra)        # Enhancing kable() possibilities
-library(DT)            # Interactive tables for HTML documents (DataTables).
-library(fmckage)
-library(janitor)
-
-library(ProjectTemplate)
-load.project()
 ```
 
 ```{r contexte, echo = F, include = F}
@@ -149,7 +152,7 @@ table(epi$sexe,epi$bilaterale,epi$complete, deparse.level = 2, useNA = "ifany") 
 ```
 
 # Etude {.tabset}
-
+## Fentes operées
 ```{r fentes_operées}
 table(etude$bilaterale,etude$cote_opere) %>%
     as.data.frame() %>%
@@ -159,6 +162,7 @@ table(etude$bilaterale,etude$cote_opere) %>%
     kable_paper(lightable_options = "striped")
 ```
 
+## Prelevement iliaque
 ```{r prelevement iliaque}
 table(etude$prelevement_iliaque) %>% 
     as.data.frame() %>%
@@ -167,26 +171,48 @@ table(etude$prelevement_iliaque) %>%
     kable(col.names = c("Prelevement iliaque","n","%")) %>% kable_paper()
 ```
 
+## Age patients
 ```{r}
-
-describe(etude$age_intervention,fast = T) %>%
-    as.data.frame %>%
-    mutate(across(mean:se ,function(x) convert_time_units(x,"months","years")))
-
-
 # Create the age groups using cut
 etude$age_group <- cut(as.numeric(etude$age/12), breaks = seq(0, 20, 1), include.lowest = TRUE)
 
-# Calculate the counts for each age group and sex
+    # Calculate the counts for each age group and sex
 tab <- etude %>%
     count(age_group, sexe, name = "count")
 
-# Create the plot
+    # Create the plot
 ggplot(data = tab, aes(x = age_group, y = ifelse(sexe == "F", -count, count), fill = sexe)) +
     geom_bar(stat = "identity", position = "identity") +
     scale_y_continuous(labels = abs, breaks = seq(-20,20,1)) +
-    labs(title = "Age Pyramid", x = "Age Group", y = "Count", fill = "Gender") +
+    labs(title = "Pyramid Age", x = "Age (années)", y = "n", fill = "Sexe") +
     theme_minimal() +
     coord_flip()
 
 ```
+## Age intervention
+```{r}
+# Dispersion mesures
+describe(etude$age_intervention,fast = T) %>%
+    as.data.frame %>%
+    mutate(across(mean:se ,function(x) convert_time_units(x,"months","years"))) %>% 
+    select(-1,-8) %>% 
+    kable(col.names = c("n", "moyenne", "écart type","min","max","range"), 
+          row.names = F,
+          caption = "Age intervention - Mesures de dispersion") %>% 
+    kable_paper()
+
+etude %>% group_by(sexe) %>% summarise(age_intervention = describe(age_intervention,fast = T)) %>% unnest() %>% 
+    mutate(across(mean:se ,function(x) convert_time_units(x,"months","years"))) %>%  
+    select(-vars,-se) %>%   
+    kable(col.names = c("sexe","n", "moyenne", "écart type","min","max","range"), 
+          row.names = F,
+          caption = "Age intervention - Mesures de dispersion by sexe") %>% 
+    kable_paper()
+
+
+```
+
+```{r}
+
+```
+
