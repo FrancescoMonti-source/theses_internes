@@ -32,3 +32,6 @@ etude = etude %>%
                TRUE ~ NA_character_)
            ) %>%
     select(-odf_prechir_years)
+
+etude = left_join(etude,epi[c("patid","sexe")]) %>%
+    relocate(sexe,.after=patid)

@@ -34,7 +34,7 @@ output:
         md_extensions : NULL       # Markdown extensions to be added or removed from the default definition of R Markdown. See the rmarkdown_format for additional details.
         pandoc_args : NULL      # Additional command line options to pass to pandoc
         template : "default"  
---- 
+---
 
 ```{r options, echo = F}
 # Chunk options
@@ -45,6 +45,7 @@ knitr::opts_chunk$set(
   fig.width  = 5,       # Default width for plots.
   fig.align  = "center" # Default alignment for plots in knitted documents.
 )
+knitr::opts_knit$set(root.dir='..')
 
 # Options to format numbers
 options(        # For more detais see ?options
@@ -54,29 +55,29 @@ options(        # For more detais see ?options
     knitr.kable.NA = NA # Replacement for NA values in knitr::kable()
 )
 
-# Kable options
-options(
-  scipen = 8,
-  digits = getOption("digits"),
-  OutDec = ".",
-  knitr.kable.NA = "",
-)
-
+# Set ggplot options
+new = theme_set(theme_minimal()) %>%
+    theme(  # You can choose a pre-defined theme or customize it further
+    text = element_text(family = "Arial", color = "black", size = 12),
+    axis.text.x = element_text(angle = 45, hjust = 1)
+    )
 
 ```
 
-```{r libraries, echo = F}
-library(conflicted)    # Get a warning/error if several functions with the same name exist.
-library(magrittr)      # Operator %>% and additional pipe-friendly functions.
+```{r libraries, echo = F, include=F}
 library(tidyverse)     # The main "tidyverse" packages.
-library(ProjectTemplate)
-library(pander)        # Function `pander()` to report results of statistical analysis.
+library(conflicted)    # Get a warning/error if several functions with the same name exist.
+conflicts_prefer(dplyr::filter)
+library(magrittr)      # Operator %>% and additional pipe-friendly functions.
+library(pander)
+library(psych)
 library(knitr)         # Function `kable()` to convert data frames into tables for reports.
 library(kableExtra)        # Enhancing kable() possibilities
 library(DT)            # Interactive tables for HTML documents (DataTables).
-conflicted::conflicts_prefer(dplyr::filter)
 library(fmckage)
+library(janitor)
 
+library(ProjectTemplate)
 load.project()
 ```
 
@@ -93,12 +94,17 @@ load.project()
 
 ```
 
-# Epidemio
+# Epidemio {.tabset}
+
+## Sexe
+
 ```{r sexe}
 table_prop(epi$sexe) %>% 
   kable(caption = "Sexe") %>% 
   kable_paper()
 ```
+
+## Fentes
 
 ```{r fentes}
 rbind(table_prop(epi$complete),
@@ -115,14 +121,16 @@ table(epi$complete,epi$bilaterale,epi$cote, deparse.level = 2, useNA = "ifany") 
   mutate("%"=Freq*100/sum(Freq)) %>%
   filter(Freq!=0) %>%
   kable(caption = "Fentes cross-table") %>%
-  kable_paper(lightable_options = "striped") %>% 
+  kable_paper(lightable_options = "striped", ) %>% 
   add_footnote(c("Complète 1/0 = oui/non",
                  "Bilatérale 1/0 = oui/non",
                  "NA = not available"))
 
 ```
 
-```{r fentes by sexe}
+## Fentes by sexe
+
+```{r fentes by sexe, echo=F}
 table(epi$sexe,epi$bilaterale,epi$complete, deparse.level = 2, useNA = "ifany") %>% 
   data.frame() %>%
   group_by(epi.sexe) %>% 
@@ -140,3 +148,45 @@ table(epi$sexe,epi$bilaterale,epi$complete, deparse.level = 2, useNA = "ifany") 
                  "NA = not available"))
 ```
 
+# Etude {.tabset}
+
+```{r fentes_operées}
+table(etude$bilaterale,etude$cote_opere) %>%
+    as.data.frame() %>%
+    mutate("%"=Freq*100/sum(Freq,na.rm=T)) %>%
+    adorn_totals() %>% 
+    kable(col.names = c("Fente","Coté operé","n","%")) %>% 
+    kable_paper(lightable_options = "striped")
+```
+
+```{r prelevement iliaque}
+table(etude$prelevement_iliaque) %>% 
+    as.data.frame() %>%
+    mutate("%"=Freq*100/sum(Freq,na.rm=T)) %>% 
+    adorn_totals() %>% 
+    kable(col.names = c("Prelevement iliaque","n","%")) %>% kable_paper()
+```
+
+```{r}
+
+describe(etude$age_intervention,fast = T) %>%
+    as.data.frame %>%
+    mutate(across(mean:se ,function(x) convert_time_units(x,"months","years")))
+
+
+# Create the age groups using cut
+etude$age_group <- cut(as.numeric(etude$age/12), breaks = seq(0, 20, 1), include.lowest = TRUE)
+
+# Calculate the counts for each age group and sex
+tab <- etude %>%
+    count(age_group, sexe, name = "count")
+
+# Create the plot
+ggplot(data = tab, aes(x = age_group, y = ifelse(sexe == "F", -count, count), fill = sexe)) +
+    geom_bar(stat = "identity", position = "identity") +
+    scale_y_continuous(labels = abs, breaks = seq(-20,20,1)) +
+    labs(title = "Age Pyramid", x = "Age Group", y = "Count", fill = "Gender") +
+    theme_minimal() +
+    coord_flip()
+
+```
