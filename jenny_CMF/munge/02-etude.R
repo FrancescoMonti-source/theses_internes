@@ -7,7 +7,7 @@ rm(etude.Feuil1)
 
 names(etude) = c("patid","bilaterale","cote_opere","prelevement_iliaque", "age",
   "age_intervention","annee_intervention","etat_bd","avulsion_dentaire",
-  "compliance_ttt","odf_prechir","odf_prechir_years","odf_prechir_months","duree_sej",
+  "odf_prechir", "compliance_ttt","odf_prechir_years","odf_prechir_months","duree_sej",
   "complications")
 
 etude = etude %>%

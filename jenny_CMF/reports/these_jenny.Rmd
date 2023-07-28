@@ -70,7 +70,7 @@ knitr::opts_chunk$set(
 # Options to format numbers
 options(        # For more detais see ?options
   scipen = 8,   # Show at least 8 digits in numbers before converting to exponential notation.
-    digits = 2,   # Number of significant digits to print numbers.
+    digits = 4,   # Number of significant digits to print numbers.
     OutDec = ".", # Default decimal separator to print numbers.
     knitr.kable.NA = NA # Replacement for NA values in knitr::kable()
 )
@@ -103,7 +103,7 @@ new = theme_set(theme_minimal()) %>%
 
 ```{r sexe}
 table_prop(epi$sexe) %>% 
-  kable(caption = "Sexe") %>% 
+  kable(caption = "Sexe", col.names = c("sexe","n","%")) %>% 
   kable_paper()
 ```
 
@@ -119,6 +119,7 @@ rbind(table_prop(epi$complete),
   pack_rows(start_row = 3,end_row = 4,"Bilatérale") %>% 
   pack_rows(start_row = 5,end_row = 8,"Coté")
 
+
 table(epi$complete,epi$bilaterale,epi$cote, deparse.level = 2, useNA = "ifany") %>% 
   data.frame() %>%
   mutate("%"=Freq*100/sum(Freq)) %>%
@@ -128,7 +129,6 @@ table(epi$complete,epi$bilaterale,epi$cote, deparse.level = 2, useNA = "ifany") 
   add_footnote(c("Complète 1/0 = oui/non",
                  "Bilatérale 1/0 = oui/non",
                  "NA = not available"))
-
 ```
 
 ## Fentes by sexe
@@ -189,30 +189,89 @@ ggplot(data = tab, aes(x = age_group, y = ifelse(sexe == "F", -count, count), fi
     coord_flip()
 
 ```
+
 ## Age intervention
 ```{r}
 # Dispersion mesures
-describe(etude$age_intervention,fast = T) %>%
-    as.data.frame %>%
-    mutate(across(mean:se ,function(x) convert_time_units(x,"months","years"))) %>% 
-    select(-1,-8) %>% 
-    kable(col.names = c("n", "moyenne", "écart type","min","max","range"), 
-          row.names = F,
-          caption = "Age intervention - Mesures de dispersion") %>% 
-    kable_paper()
+tab = describe(etude$age_intervention,fast = T) %>%
+  round(2) %>% 
+  as.data.frame %>%
+  select(-1,-8) 
 
-etude %>% group_by(sexe) %>% summarise(age_intervention = describe(age_intervention,fast = T)) %>% unnest() %>% 
-    mutate(across(mean:se ,function(x) convert_time_units(x,"months","years"))) %>%  
+tab2 = tab %>% 
+  mutate(across(mean:range, function(x) fmckage::convert_time(x,
+                                                  from = "months", 
+                                                  to = c("years","months","days"), 
+                                                  warn_residual = F)))
+
+# Binding the 2 tables together
+rbind(tab,tab2) %>% `row.names<-`(c("Mois","Years - months - days")) %>% 
+    kable(col.names = c("n", "moyenne", "écart type","min","max","range"), 
+          row.names = T,
+          caption = "Age intervention - Mesures de dispersion", 
+          digits = 2) %>% 
+    kable_paper() 
+
+# Dispersion mesures by sexe
+tab = etude %>% 
+  group_by(sexe) %>% 
+  summarise(age_intervention = describe(age_intervention,fast = T)) %>% 
+  unnest(cols = c(age_intervention)) %>% 
+  mutate(across(mean:range, function(x) round(x, 2)))
+
+tab2 = tab %>% 
+  mutate(across(mean:se ,function(x) convert_time(x,from = "months", to = c("years","months","days")))) 
+
+rbind(tab, tab2) %>%  
     select(-vars,-se) %>%   
     kable(col.names = c("sexe","n", "moyenne", "écart type","min","max","range"), 
           row.names = F,
           caption = "Age intervention - Mesures de dispersion by sexe") %>% 
-    kable_paper()
+    kable_paper() %>% 
+  pack_rows("Mois",1,2) %>% 
+  pack_rows("Years - months - days",3,4)
 
 
 ```
 
+## Traitement ODF
 ```{r}
+# Combien de patients ont eu un traitement ODF pré chir ?
+etude %>% 
+  distinct(patid, odf_prechir) %$%
+  table_prop(odf_prechir)  %>% 
+  kable(col.names = c("ODF prechir","n","%")) %>% 
+  kable_paper() %>%
+  add_footnote(c("ODF prechir 1/0 = oui/non",
+                 "NA = not available"))
+
+
+# temps moyen d’une prise en charge ODF avant la chirurgie 
+tab = describe(etude$odf_prechir_months, fast = T) %>% round(2) %>% 
+  select(-1,-8) %>% 
+  as.data.frame() 
+
+tab2 = etude %>%
+  group_by(sexe) %>%
+  summarise(odf_prechir_months = describe(odf_prechir_months, fast = T)) %>% 
+  unnest(cols = odf_prechir_months) %>% 
+  mutate(across(mean:range, round, 2)) %>% 
+  select(-2,-9) %>%
+  column_to_rownames("sexe")
+  
+tab3 = rbind(tab,tab2) %>% 
+  mutate(across(mean:range, function(x) convert_time(x, from = "months", to = c("years","months","days"))))
+
+rbind(tab,tab2,tab3) %>% 
+  `row.names<-`(c("Tous","F","M","tous","f","m")) %>% 
+    kable(col.names = c("n", "moyenne", "écart type","min","max","range"), 
+          row.names = T,
+          caption = "Durée prise en charge ODF pre chir - Mesures de dispersion", 
+          digits = 2) %>% 
+  kable_paper() %>% 
+  pack_rows("Mois",1,3) %>% 
+  pack_rows("Years - months - days",4,6)
+
 
 ```
 
