@@ -8,17 +8,17 @@ convert_to_months <- function(age_data) {
   return(age_in_months)
 }
 
-
 table_prop <- function(x,useNA = "ifany", name = "var") {
     tbl <- table(x, useNA = useNA)
     prop_tbl <- prop.table(tbl)
     result <- data.frame(
-        name = as.character(names(tbl)),
+        as.character(names(tbl)),
         n = as.vector(tbl),
         prop = paste(round(as.vector(prop_tbl)*100, getOption("digits")), "%")
-        )
+    )
+    colnames(result) <- c(name, "n", "prop")
     return(result)
-    }
+}
 
 
 

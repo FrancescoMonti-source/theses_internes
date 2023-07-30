@@ -1,11 +1,8 @@
 ---
-# General Information --------------------------------------------------------
 title:    "Thèse Jenny CMF"
 subtitle: "Revue des pratiques gingivopériostoplastie"
 author:   "Francesco Monti"
 date:     "2023-07-25 12:26:12" # Automatic date
-# Document Format and Appearance ---------------------------------------------
-# type ?html_document for more details
 output:
     bookdown::html_document2: 
         toc:         yes        # Table of contents (toc): yes no
@@ -34,6 +31,8 @@ output:
         md_extensions : NULL       # Markdown extensions to be added or removed from the default definition of R Markdown. See the rmarkdown_format for additional details.
         pandoc_args : NULL      # Additional command line options to pass to pandoc
         template : "default"  
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r libraries, echo = F, include=F}
@@ -42,7 +41,10 @@ library(conflicted)    # Get a warning/error if several functions with the same 
 conflicts_prefer(dplyr::filter)
 library(magrittr)      # Operator %>% and additional pipe-friendly functions.
 library(pander)
+library(forecast)
+library(tseries)
 library(psych)
+library(lmtest)
 library(knitr)         # Function `kable()` to convert data frames into tables for reports.
 #knitr::opts_knit$set(root.dir='..')
 
@@ -76,12 +78,12 @@ options(        # For more detais see ?options
 )
 
 # Set ggplot options
-new = theme_set(theme_minimal()) %>%
+new = theme_minimal()+
     theme(  # You can choose a pre-defined theme or customize it further
     text = element_text(family = "Arial", color = "black", size = 12),
-    axis.text.x = element_text(angle = 45, hjust = 1)
-    )
-
+    axis.title = element_text(face = "bold"),
+    title = element_text(face = "bold"))
+theme_set(new)
 ```
 
 ```{r contexte, echo = F, include = F}
@@ -172,7 +174,7 @@ table(etude$prelevement_iliaque) %>%
 ```
 
 ## Age patients
-```{r}
+```{r age patients}
 # Create the age groups using cut
 etude$age_group <- cut(as.numeric(etude$age/12), breaks = seq(0, 20, 1), include.lowest = TRUE)
 
@@ -191,7 +193,7 @@ ggplot(data = tab, aes(x = age_group, y = ifelse(sexe == "F", -count, count), fi
 ```
 
 ## Age intervention
-```{r}
+```{r age intervention}
 # Dispersion mesures
 tab = describe(etude$age_intervention,fast = T) %>%
   round(2) %>% 
@@ -235,8 +237,8 @@ rbind(tab, tab2) %>%
 ```
 
 ## Traitement ODF
-```{r}
-# Combien de patients ont eu un traitement ODF pré chir ?
+```{r ttt odf}
+# 1) Combien de patients ont eu un traitement ODF pré chir ?
 etude %>% 
   distinct(patid, odf_prechir) %$%
   table_prop(odf_prechir)  %>% 
@@ -246,7 +248,7 @@ etude %>%
                  "NA = not available"))
 
 
-# temps moyen d’une prise en charge ODF avant la chirurgie 
+# 2) temps moyen d’une prise en charge ODF avant la chirurgie 
 tab = describe(etude$odf_prechir_months, fast = T) %>% round(2) %>% 
   select(-1,-8) %>% 
   as.data.frame() 
@@ -262,6 +264,8 @@ tab2 = etude %>%
 tab3 = rbind(tab,tab2) %>% 
   mutate(across(mean:range, function(x) convert_time(x, from = "months", to = c("years","months","days"))))
 
+
+    # joining tables
 rbind(tab,tab2,tab3) %>% 
   `row.names<-`(c("Tous","F","M","tous","f","m")) %>% 
     kable(col.names = c("n", "moyenne", "écart type","min","max","range"), 
@@ -272,6 +276,84 @@ rbind(tab,tab2,tab3) %>%
   pack_rows("Mois",1,3) %>% 
   pack_rows("Years - months - days",4,6)
 
+```
+
+## Temps hospitalisation
+```{r duree hospit}
+# Mesures de dispersion
+t_hospit = describe(etude$duree_sej, fast = T)[-c(1,8)] %>% round(2)
+
+tab1 = t_hospit %>% 
+    tibble %>% 
+    mutate(across(mean:range, function(x) convert_time(x, from="days", to = c("days","hours"))))
+
+tab2 = t_hospit %>%
+    tibble %>% 
+    mutate(across(mean:range, function(x) convert_time(x, from="days", to = c("hours","minutes"))))
+
+    # Binding
+rbind(as.character(t_hospit),tab1,tab2) %>%  
+    mutate(rownames = c("","Days","Hours")) %>% 
+    column_to_rownames(var = "rownames") %>% 
+    kable(row.names = T, 
+          caption = "Temps d'hispitalisation - mesures de dispersion", 
+          col.names = c("n", "moyenne", "écart type","min","max","range")) %>%
+    kable_paper()
+
+# Table durée hospitalisation
+table_prop(etude$duree_sej, name = "Durée hospit (jours)") %>% 
+    kable(caption = "Tableau durée sejour") %>%
+    kable_paper()
 
 ```
+
+## Suites
+```{r suites}
+table_prop(etude$complications, name = "complications") %>% 
+    kable(caption = "Suites compliquées oui/non") %>% 
+    kable_paper()
+```
+
+# Learning curve
+```{r learning curve, message=F}
+ggplot(lc, aes(x = as_date(date), y = time, color = factor(interne, labels = c("Oui","Non"))))+
+    geom_point(position = "identity")+
+    scale_y_continuous(breaks = seq(0,300,20))+
+    scale_x_date(labels = as.character(seq(2010,2024,1)), date_breaks = "1 year")+
+    geom_smooth(method="loess", span = 0.75)+
+    labs(title = "Evolution temps d'intervention",
+         y = "Temps (minutes)",
+         x = "Date intervention",
+         color = "Interne")
+
+```
+
+40 à 60min plus rapide AVEC interne
+
+```{r linear regression, include = F}
+# Trying a lm()
+model <- lm(time ~ date, data = lc)
+summary(model)
+
+# Testing the assumption of linear model
+    # Residuals vs Fitted values plot
+plot(model, which = 1)
+    # Q-Q plot
+qqnorm(residuals(model))
+qqline(residuals(model))
+    # Shapiro-Wilk test
+shapiro.test(residuals(model))
+    # Durbin Watson Test
+dwtest(model)
+
+# Both the Shapiro-Wilk test for normality and the Durbin-Watson test for independence suggest violations of the assumptions of the linear regression model.
+# 
+# Normality assumption: The Shapiro-Wilk test p-value is very small, which provides evidence against the hypothesis that your residuals are normally distributed. It implies that the distribution of your residuals deviates from a normal distribution.
+# 
+# Independence assumption: The Durbin-Watson test p-value is less than 0.05, indicating that there is a statistically significant autocorrelation in the residuals, which means the independence assumption is violated.
+
+```
+
+
+
 
