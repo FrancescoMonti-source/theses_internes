@@ -7,7 +7,7 @@ Si vous le souhaitez, ils existent plusieurs possibilités de customisation des 
 ### Graphes
 Pour commencer, ici vous pouvez explorer une plutot vaste collection de thèmes. Il est possible de les ajuster dans le détail, si besoin. Appuyer sur les noms des thèmes au lien suivant pour voir une preview:<br>
 
-[Pick a theme for your plots](https://r-charts.com/ggplot2/themes/) (ctrl + clique pour ouvrir dans un nouveau onglet)<br>
+[Choisir un thème pour les graphes](https://r-charts.com/ggplot2/themes/) (ctrl + clique pour ouvrir dans un nouveau onglet)<br>
 
 ### Tableaux interactifs
 Au lien suivant vous aurez la possibilité de jouer avec un tableau .html, tester plusieurs options et créer votre thème.  
