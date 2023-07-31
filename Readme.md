@@ -7,4 +7,4 @@ Pour commencer, ici vous pouvez explorer une plutot vaste collection de thèmes.
 
 ## Tableaux interactifs
 Au lien suivant vous aurez la possibilité de jouer avec un tableau .html, tester plusieurs options et créer votre thème. 
-![My Image](DT_style_creator.png)
+![My Image](DT_style_creator.png](https://github.com/FrancescoMonti-source/tesi_internes/edit/master/Readme.md)https://github.com/FrancescoMonti-source/tesi_internes/edit/master/Readme.md)
