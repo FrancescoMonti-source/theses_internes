@@ -12,6 +12,6 @@ Pour commencer, ici vous pouvez explorer une plutot vaste collection de thèmes.
 ### Tableaux interactifs
 [Ici](https://datatables.net/manual/styling/theme-creator) vous aurez la possibilité de jouer avec un tableau .html, tester plusieurs options et créer votre thème. Descendez un peu dans la page pour voir la preview et jouer avec d'autres paramètres comme *display/cell-border/compact/hover/order-column/row-border/stripe*. Cliquez [ici](https://datatables.net/manual/styling/classes) pour voir la documentation rélative à ces derniers paramètres.
 
-En suite vous cliquez sur "Create stylesheet" et juste dessous sur l'onglet CSS. Copie-coller les lignes de code dans un fichier **.txt** et sauvegarder. Partagez le fichier avec moi par n'importe quel moyen vous convient.
+En suite vous cliquez sur "Create stylesheet" et juste dessous sur l'onglet CSS. Copiez-coller les lignes de code dans un fichier **.txt** et sauvegarder. Partagez le fichier avec moi par n'importe quel moyen vous convient.
 
 ![DT style creator](https://github.com/FrancescoMonti-source/tesi_internes/blob/master/datatable_style_creator.PNG?raw=true)
