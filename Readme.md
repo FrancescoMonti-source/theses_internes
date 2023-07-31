@@ -3,9 +3,11 @@ Ils existent plusieurs possibilités de customisation des graphes/tableaux que j
 
 ## Graphes
 Pour commencer, ici vous pouvez explorer une plutot vaste collection de thèmes. Il est possible de les ajuster dans le détail au besoin. Appuyer sur le nom des thèmes au lien suivant pour voir une preview:  
+
 [Pick a theme for your plots](https://r-charts.com/ggplot2/themes/) (ctrl + clique pour ouvrir dans un nouveau onglet)
 
 ## Tableaux interactifs
 Au lien suivant vous aurez la possibilité de jouer avec un tableau .html, tester plusieurs options et créer votre thème.  
+
 [Créer un thème](https://datatables.net/manual/styling/theme-creator) (ctrl + clique pour ouvrir dans un nouveau onglet)
 ![DT style creator](https://github.com/FrancescoMonti-source/tesi_internes/blob/master/datatable_style_creator.svg?raw=true)
