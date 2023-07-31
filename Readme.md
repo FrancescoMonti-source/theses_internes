@@ -7,4 +7,4 @@ Pour commencer, ici vous pouvez explorer une plutot vaste collection de thèmes.
 
 ## Tableaux interactifs
 Au lien suivant vous aurez la possibilité de jouer avec un tableau .html, tester plusieurs options et créer votre thème. 
-![My Image](http://example.com/my_image.png)
+![My Image](DT_style_creator.png)
