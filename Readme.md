@@ -10,7 +10,7 @@ Pour commencer, ici vous pouvez explorer une plutot vaste collection de thèmes.
 [Choisir un thème pour les graphes](https://r-charts.com/ggplot2/themes/) (ctrl + clique pour ouvrir dans un nouveau onglet)<br>
 
 ### Tableaux interactifs
-[Ici](https://datatables.net/manual/styling/theme-creator) vous aurez la possibilité de jouer avec un tableau .html, tester plusieurs options et créer votre thème. Descendez un peu dans la page pour voir la preview et jouer avec d'autres paramètres comme *display/cell-border/compact/hover/order-column/row-border/stripe*. Cliquez [ici](https://datatables.net/manual/styling/classes) pour voir la documentation rélative à ces paramètres.
+[Ici](https://datatables.net/manual/styling/theme-creator) vous aurez la possibilité de jouer avec un tableau .html, tester plusieurs options et créer votre thème. Descendez un peu dans la page pour voir la preview et jouer avec d'autres paramètres comme *display/cell-border/compact/hover/order-column/row-border/stripe*. Cliquez [ici](https://datatables.net/manual/styling/classes) pour voir la documentation rélative à ces derniers paramètres.
 
 En suite vous cliquez sur "Create stylesheet" et juste dessous sur l'onglet CSS. Copie-coller les lignes de code dans un fichier .txt et sauvegarder. Partagez le fichier.
 
