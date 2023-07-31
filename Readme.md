@@ -10,7 +10,7 @@ Pour commencer, ici vous pouvez explorer une plutot vaste collection de thèmes.
 [Choisir un thème pour les graphes](https://r-charts.com/ggplot2/themes/) (ctrl + clique pour ouvrir dans un nouveau onglet)<br>
 
 ### Tableaux interactifs
-Au lien suivant vous aurez la possibilité de jouer avec un tableau .html, tester plusieurs options et créer votre thème.  
+Au lien suivant vous aurez la possibilité de jouer avec un tableau .html, tester plusieurs options et créer votre thème. Descendez un peu dans la page pour voir la preview et jouer avec d'autres paramètres comme *display/cell-border/compact/hover/order-column/row-border/stripe*
 
 [Créer un thème](https://datatables.net/manual/styling/theme-creator) (ctrl + clique pour ouvrir dans un nouveau onglet)<br>
 
