@@ -11,4 +11,6 @@ Au lien suivant vous aurez la possibilité de jouer avec un tableau .html, teste
 
 [Créer un thème](https://datatables.net/manual/styling/theme-creator) (ctrl + clique pour ouvrir dans un nouveau onglet)<br>
 
+En suite vous cliquez sur "Create stylesheet" et juste dessous sur l'onglet CSS. Copie-coller les lignes de code dans un fichier .txt et sauvegarder. Partagez le fichier.
+
 ![DT style creator](https://github.com/FrancescoMonti-source/tesi_internes/blob/master/datatable_style_creator.svg?raw=true)
