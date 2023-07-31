@@ -10,4 +10,5 @@ Pour commencer, ici vous pouvez explorer une plutot vaste collection de thèmes.
 Au lien suivant vous aurez la possibilité de jouer avec un tableau .html, tester plusieurs options et créer votre thème.  
 
 [Créer un thème](https://datatables.net/manual/styling/theme-creator) (ctrl + clique pour ouvrir dans un nouveau onglet)<br>
+
 ![DT style creator](https://github.com/FrancescoMonti-source/tesi_internes/blob/master/datatable_style_creator.svg?raw=true)
