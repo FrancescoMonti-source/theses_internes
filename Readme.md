@@ -13,4 +13,4 @@ Au lien suivant vous aurez la possibilité de jouer avec un tableau .html, teste
 
 En suite vous cliquez sur "Create stylesheet" et juste dessous sur l'onglet CSS. Copie-coller les lignes de code dans un fichier .txt et sauvegarder. Partagez le fichier.
 
-![DT style creator](https://github.com/FrancescoMonti-source/tesi_internes/blob/master/datatable_style_creator.png?raw=true)
+![DT style creator](https://github.com/FrancescoMonti-source/tesi_internes/blob/master/datatable_style_creator.PNG?raw=true)
