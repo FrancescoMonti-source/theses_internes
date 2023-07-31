@@ -7,4 +7,4 @@ Pour commencer, ici vous pouvez explorer une plutot vaste collection de thèmes.
 
 ## Tableaux interactifs
 Au lien suivant vous aurez la possibilité de jouer avec un tableau .html, tester plusieurs options et créer votre thème. 
-![DT style creator](datatable_style_creator.svg"](https://github.com/FrancescoMonti-source/tesi_internes/blob/master/datatable_style_creator.svg)https://github.com/FrancescoMonti-source/tesi_internes/blob/master/datatable_style_creator.svg)
+![DT style creator](https://github.com/FrancescoMonti-source/tesi_internes/blob/master/datatable_style_creator.svg "test")
