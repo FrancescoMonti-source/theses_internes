@@ -7,5 +7,5 @@ Pour commencer, ici vous pouvez explorer une plutot vaste collection de thèmes.
 
 ## Tableaux interactifs
 Au lien suivant vous aurez la possibilité de jouer avec un tableau .html, tester plusieurs options et créer votre thème.  
-[Créer un thème](https://r-charts.com/ggplot2/themes/](https://datatables.net/manual/styling/theme-creator)
+[Créer un thème](https://datatables.net/manual/styling/theme-creator)
 ![DT style creator](https://github.com/FrancescoMonti-source/tesi_internes/blob/master/datatable_style_creator.svg?raw=true)
