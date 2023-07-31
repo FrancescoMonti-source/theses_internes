@@ -41,8 +41,7 @@ library(conflicted)    # Get a warning/error if several functions with the same 
 conflicts_prefer(dplyr::filter)
 library(magrittr)      # Operator %>% and additional pipe-friendly functions.
 library(pander)
-library(forecast)
-library(tseries)
+library(Kendall)
 library(psych)
 library(lmtest)
 library(knitr)         # Function `kable()` to convert data frames into tables for reports.
@@ -155,7 +154,7 @@ table(epi$sexe,epi$bilaterale,epi$complete, deparse.level = 2, useNA = "ifany") 
 
 # Etude {.tabset}
 ## Fentes operées
-```{r fentes_operées}
+```{r fentes operées}
 table(etude$bilaterale,etude$cote_opere) %>%
     as.data.frame() %>%
     mutate("%"=Freq*100/sum(Freq,na.rm=T)) %>%
@@ -314,21 +313,74 @@ table_prop(etude$complications, name = "complications") %>%
     kable_paper()
 ```
 
-# Learning curve
+# Learning curve{.tabset}
+## Graphe
 ```{r learning curve, message=F}
-ggplot(lc, aes(x = as_date(date), y = time, color = factor(interne, labels = c("Oui","Non"))))+
-    geom_point(position = "identity")+
+# Plot
+lc %>% 
+  #filter(double==0) %>% 
+ggplot(aes(x = as_date(date), y = time, color = factor(interne, labels = c("Oui","Non"))))+
+    geom_point(position = "identity", aes(shape = factor(double)), size = 2.5)+
+    scale_shape_manual(values=c(16, 17))+ 
     scale_y_continuous(breaks = seq(0,300,20))+
     scale_x_date(labels = as.character(seq(2010,2024,1)), date_breaks = "1 year")+
     geom_smooth(method="loess", span = 0.75)+
     labs(title = "Evolution temps d'intervention",
          y = "Temps (minutes)",
          x = "Date intervention",
+         shape = "Intervention bilatérale",
          color = "Interne")
+```
+
+Les lignes colorées du graphique montrent la tendance moyenne dans le temps pour chaque groupe : une pour les cas où le chirurgien effectue l'opération seul, et une autre pour les cas où il était assisté par un interne. Il s'agit en quelque sorte d'une "meilleure estimation" de la durée moyenne de l'opération à une date donnée, sur la base des données dont nous disposons.
+
+La zone ombrée autour de chaque ligne représente notre incertitude quant à cette "meilleure estimation". Elle nous indique que si nous devions deviner la durée moyenne des opérations à une certaine date, nous sommes sûrs à 95 % que la moyenne réelle se situerait dans cette zone ombrée.
+
+Imagine d'essayer de deviner le poids d'un patient qu'en le regardant. Ton meilleure estimation pourrait être le poids moyen des patients que tu as vu auparavant. Mais tu sais aussi que les patients, à parité de volume, peuvent être un peu plus légers ou plus lourds que cette moyenne car ils n'ont pas la même composition corporelle. La zone ombrée revient à dire : "Je suis presque sûr que le poids de ce patient est de l'ordre de ce chiffre, à quelque chose près".
+
+Dans ce contexte, la zone ombrée représente notre "à peu près" pour le temps d'intervention moyen. Plus la zone ombrée est large, plus notre "meilleure estimation" est incertaine. Comme on a moins de données "avec interne", le dégrée d'incertitude est plus élevé.
+
+## Tendance: Mann-Kendall
+```{r mannkendall, message=F}
+# Mann-Kendall test on the sorted data
+mk = lc %>% arrange(date) %>% filter(double==0) %$% MannKendall(time)
+  # Printint the results nicely
+cbind("Tau" = round(mk$tau,3), "p-value" = pval_format(mk$sl)) %>% kable(caption ="Mann-Kendall test") %>% kable_paper()
+```
+
+Pour tester formellement une tendance, nous pouvons utiliser le test de tendance de Mann-Kendall, un test non paramétrique largement utilisé pour détecter les tendances dans les données de séries temporelles. Le test ne suppose pas de distribution spécifique des données et il est particulièrement utile lorsqu'il s'agit de données qui ne sont pas normalement distribuées.
+
+La valeur tau du test de Mann-Kendall est une mesure de la force et de la direction de la tendance. La valeur tau est comprise entre -1 (forte tendance à la baisse) et 1 (forte tendance à la hausse). Une valeur de 0 indique l'absence de tendance. Dans notre cas, le tau est de -0,587, ce qui suggère une "forte" tendance à la baisse.
+
+La valeur p est une mesure de la signification statistique du résultat du test. La convention veut qu'une valeur p inférieure à 0,05 soit considérée comme statistiquement significative. Dans notre cas, la valeur p est inférieure à 2e-16 (*p<0.001*), ce qui est extrêmement faible et, par conséquent, le résultat est hautement significatif sur le plan statistique.
+
+En résumé, les résultats du test de Mann-Kendall indiquent qu'il existe une forte tendance à la baisse du temps d'intervention du chirurgien au cours des 13 années, et cette tendance est statistiquement significative. Cela signifie qu'on dispose de preuves solides pour suggérer que le chirurgien devient effectivement plus rapide au fil du temps (ce qui n'est pas surprenant en soit mais c'est cool de le prouver).
+
+J'au exclu du test statistique les interventions doubles (qui sont seulement 6).
+
+
+## Interne oui vs interne non
+
+Dans le graphe, le fait que les zones ombrées des deux groupes ne se chevauchent pas beaucoup nous indique qu'il existe une différence notable entre les deux scénarios : lorsque le chirurgien travaille seul et lorsqu'il est assisté. Cela n'est pas une surprise et le graphe parle tellement clair que faire un test stat est un peu ridicule mais voici ce que ça donne si on fait un test de student (pour comparer la durée moyenne entre "avec interne" et "sans interne"). A nouveau moi j'ai exclu les 6 interventions bilatérale dans ce test (seulement 1 bilatérale et avec interne). La différence entre la moyenne des 2 groupes est le temps que l'interne fait gagner en moyenne.
+
+```{r interne impact}
+surgeon_alone <- lc$time[lc$interne == 0 & lc$double==0]
+surgeon_with_helper <- lc$time[lc$interne == 1 & lc$double==0]
+
+tstudent = t.test(surgeon_alone, surgeon_with_helper)
+
+# P-value
+data.frame("P-value", pval_format(tstudent$p.value)) %>% kable(col.names = c("",""), caption = "Test t student") %>% kable_paper()
+
+# Mean difference between the groups
+tstudent$estimate %>% 
+  as.data.frame(row.names = c("AVEC interne", "SANS interne")) %>% 
+  `colnames<-`("Temps (minutes)") %>% 
+  kable(caption = "Temps moyen d'intervention") %>% 
+  kable_paper()
 
 ```
 
-40 à 60min plus rapide AVEC interne
 
 ```{r linear regression, include = F}
 # Trying a lm()
