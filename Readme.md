@@ -1,4 +1,6 @@
 # Lisez-moi
+Salut! Ce document, work-in-progress, a le but d'être une petite guide pour les internes.<br>
+
 Si vous le souhaitez, ils existent plusieurs possibilités de customisation des graphes/tableaux que je peux vous sortir. De telle manière, vous n'aurez pas besoin de les re-bricoler à la main sur Excel pour les adapter à votre thèse/memoire ou vous contenter d'un style "sub-optimale" qui ne match pas avec le reste du document. Tant que vous avez les idée claire en tête, à n'importe quel moment (ça veut dire que aussi à la fin de l'analyse), je peux changer le style de tous les graphes et de tous les tableaux d'un coup.
 
 ## Graphes
