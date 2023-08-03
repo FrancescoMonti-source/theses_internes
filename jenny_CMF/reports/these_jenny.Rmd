@@ -53,7 +53,7 @@ library(fmckage)
 library(janitor)
 
 library(ProjectTemplate)
-setwd("..")
+#setwd("..")
 load.project()
 ```
 
@@ -77,12 +77,12 @@ options(        # For more detais see ?options
 )
 
 # Set ggplot options
-new = theme_minimal()+
+theme = theme_clean()+
     theme(  # You can choose a pre-defined theme or customize it further
-    text = element_text(family = "Arial", color = "black", size = 12),
+    text = element_text(color = "black", size = 12),
     axis.title = element_text(face = "bold"),
     title = element_text(face = "bold"))
-theme_set(new)
+theme_set(theme)
 ```
 
 ```{r contexte, echo = F, include = F}
@@ -205,11 +205,12 @@ tab2 = tab %>%
                                                   to = c("years","months","days"), 
                                                   warn_residual = F)))
 
+x = rbind(tab,tab2) %>% mutate(sexe = "") %>% relocate(sexe, .before = n)
+
 # Binding the 2 tables together
-rbind(tab,tab2) %>% `row.names<-`(c("Mois","Years - months - days")) %>% 
-    kable(col.names = c("n", "moyenne", "écart type","min","max","range"), 
-          row.names = T,
-          caption = "Age intervention - Mesures de dispersion", 
+rbind(tab,tab2) %>% `rownames<-`(c("Months","Years - months - days")) %>% 
+    kable(row.names = T,
+          caption = "Age - Dispersion measures", 
           digits = 2) %>% 
     kable_paper() 
 
@@ -218,19 +219,30 @@ tab = etude %>%
   group_by(sexe) %>% 
   summarise(age_intervention = describe(age_intervention,fast = T)) %>% 
   unnest(cols = c(age_intervention)) %>% 
-  mutate(across(mean:range, function(x) round(x, 2)))
+  mutate(across(mean:range, function(x) round(x, 2))) %>%  
+    select(-vars,-se)
 
 tab2 = tab %>% 
-  mutate(across(mean:se ,function(x) convert_time(x,from = "months", to = c("years","months","days")))) 
+  mutate(across(mean:range ,function(x) convert_time(x,from = "months", to = c("years","months","days"))))
 
-rbind(tab, tab2) %>%  
-    select(-vars,-se) %>%   
-    kable(col.names = c("sexe","n", "moyenne", "écart type","min","max","range"), 
-          row.names = F,
+rbind(tab, tab2) %>%   
+    kable(row.names = F,
           caption = "Age intervention - Mesures de dispersion by sexe") %>% 
     kable_paper() %>% 
   pack_rows("Mois",1,2) %>% 
   pack_rows("Years - months - days",3,4)
+
+
+rbind(x,tab,tab2) %>% 
+    kable(caption = "Age - Dispersion measures",
+          col.names = c("","n","Mean","Sd","Min","Max","Range")) %>% 
+    kable_paper() %>%
+    group_rows("By sex",5,6) %>% 
+  kable_styling(bootstrap_options = c("striped", "hover")) %>% 
+    pack_rows("",7,8) %>% 
+    pack_rows("",3,4)
+
+
 
 
 ```
@@ -305,6 +317,21 @@ table_prop(etude$duree_sej, name = "Durée hospit (jours)") %>%
     kable_paper()
 
 ```
+
+
+## Age intervention vs ODF
+```{r}
+plot(etude$age_intervention,etude$odf_prechir)
+
+etude %>% 
+    ggplot()+
+    geom_boxplot(aes(x = factor(odf_prechir), y = age))+
+    scale_y_continuous(breaks = seq(0,300,12), labels = function(x) x/12)
+    
+
+```
+
+
 
 ## Suites
 ```{r suites}
@@ -405,6 +432,8 @@ dwtest(model)
 # Independence assumption: The Durbin-Watson test p-value is less than 0.05, indicating that there is a statistically significant autocorrelation in the residuals, which means the independence assumption is violated.
 
 ```
+
+
 
 
 
