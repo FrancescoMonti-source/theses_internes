@@ -1,0 +1,70 @@
+---
+title: "Thèse Jedffgnny CMF"
+author: "Francesco Monti"
+date: "2023-07-25 12:26:12"
+output:
+  officedown::rdocx_document:
+    reference_docx: "word_reference_style-01.docx"
+  word_document: default
+---
+
+```{r libraries, echo = F, include=F}
+library(tidyverse)     # The main "tidyverse" packages.
+library(conflicted)    # Get a warning/error if several functions with the same name exist.
+conflicts_prefer(dplyr::filter)
+library(magrittr)      # Operator %>% and additional pipe-friendly functions.
+library(pander)
+library(Kendall)
+library(psych)
+library(lmtest)
+library(knitr)         # Function `kable()` to convert data frames into tables for reports.
+#knitr::opts_knit$set(root.dir='..')
+
+library(kableExtra)        # Enhancing kable() possibilities
+library(DT)            # Interactive tables for HTML documents (DataTables).
+library(fmckage)
+library(janitor)
+library(ggthemes)
+
+library(ProjectTemplate)
+#setwd("..")
+load.project()
+library(officer)
+library(flextable)
+library(officedown)
+```
+
+```{r options, echo = F}
+# Chunk options
+knitr::opts_chunk$set(
+  echo       = TRUE,    # Should blocks with program code be shown in knitted documents?
+  eval       = TRUE,    # Should program code be evaluated?
+  fig.height = 6,       # Default height for plots.
+  fig.width  = 10,       # Default width for plots.
+  fig.align  = "center", # Default alignment for plots in knitted documents.
+  warning = F, 
+  fig.fullwidth = T
+)
+
+# Options to format numbers
+options(        # For more detais see ?options
+  scipen = 8,   # Show at least 8 digits in numbers before converting to exponential notation.
+    digits = 2,   # Number of significant digits to print numbers.
+    OutDec = ".", # Default decimal separator to print numbers.
+    knitr.kable.NA = NA # Replacement for NA values in knitr::kable()
+)
+
+# Set ggplot options
+theme = theme_clean()+
+    theme(  # You can choose a pre-defined theme or customize it further
+    text = element_text(color = "black", size = 12),
+    axis.title = element_text(face = "bold"),
+    title = element_text(face = "bold"))
+theme_set(theme)
+```
+
+
+## Sexe
+
+```{r sexe}
+table_prop(epi$sexe) %>% flextable()
