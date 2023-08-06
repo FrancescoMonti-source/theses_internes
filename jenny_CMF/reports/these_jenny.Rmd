@@ -31,27 +31,25 @@ library(ProjectTemplate)
 load.project()
 library(officer)
 library(flextable)
+library(tabulator)
 library(officedown)
 ```
 
 ```{r options, echo = F}
 # Chunk options
 knitr::opts_chunk$set(
-  echo       = TRUE,    # Should blocks with program code be shown in knitted documents?
+  echo       = F,    # Should blocks with program code be shown in knitted documents?
   eval       = TRUE,    # Should program code be evaluated?
-  fig.height = 6,       # Default height for plots.
-  fig.width  = 10,       # Default width for plots.
+  #fig.height = 6,       # Default height for plots.
+  #fig.width  = 10,       # Default width for plots.
   fig.align  = "center", # Default alignment for plots in knitted documents.
-  warning = F, 
-  fig.fullwidth = T
+  #fig.fullwidth = T,
+  warning = F 
 )
 
 # Options to format numbers
 options(        # For more detais see ?options
-  scipen = 8,   # Show at least 8 digits in numbers before converting to exponential notation.
-    digits = 2,   # Number of significant digits to print numbers.
-    OutDec = ".", # Default decimal separator to print numbers.
-    knitr.kable.NA = NA # Replacement for NA values in knitr::kable()
+    digits = 4  # Number of significant digits to print numbers.
 )
 
 # Set ggplot options
@@ -64,13 +62,15 @@ theme_set(theme)
 
 # Flextable defaults
 set_flextable_defaults(
+    text.align = "center",
   font.family = "Helvetica",
   font.size = 11,
   padding = 2,
-  border.color = "#CCCCCC",
-  line_spacing = 1.3,
-  digits = 2,
-  na_str = ""
+  #border.color = "#CCCCCC",
+  line_spacing = 1,
+  digits = 4,
+  pct_digits = 2, 
+  na_str = "", theme_fun = "theme_zebra"
   )
 
 ```
@@ -78,9 +78,13 @@ set_flextable_defaults(
 # Epidemio {.tabset}
 ## Sexe
 ```{r sexe}
-table_prop(epi$sexe) %>% 
-  `colnames<-`(c("Gender","n","%")) %>% 
-  flextable()
+proc_freq(epi, "sexe") %>% 
+    set_table_properties(width=1,layout="autofit")
+    
+
+# table_prop(epi$sexe) %>% 
+#   `colnames<-`(c("Gender","n","%")) %>% 
+#   flextable()
   # kable(caption = "Gender", col.names = c("Gender","n","%")) %>% 
   # kable_paper() %>% 
   # kable_styling(bootstrap_options = c("striped", "hover"))
@@ -89,19 +93,41 @@ table_prop(epi$sexe) %>%
 ## Fentes
 ```{r fentes}
 ##### Table 1 ------------
-df = rbind(table_prop(epi$complete),
-      table_prop(epi$cote)) %>% 
-  mutate(var = c("No","Yes","Both","Right","Left","NA"),
-         group = c(rep("Complete", 2), rep("Affected side", 4))) %>% 
-  relocate(group, .before = dplyr::first(colnames(.))) %>% 
-  as_grouped_data(groups = c("group"))  
-  
-flextable(df) %>% 
-  set_header_labels(group = "Feature", var = "", n = "N", prop = "%") %>% 
-  bold(j = 1, part = "body") %>%
-  bold(part = "header") %>%
-  flextable::theme_apa() %>%
-  set_table_properties(width = .75, layout = "autofit")
+# proc_freq(epi,"complete","cote", 
+#           include.column_percent = F, 
+#           include.row_percent = F) %>%
+#     set_table_properties(width=1, layout="autofit")
+
+
+df = tab(epi,sexe,cote,complete, round = 4) %>% 
+    split(.$sexe) %>% 
+    lapply(arrange,sexe,complete,desc(N),cote) %>%
+    adorn_totals() %>% 
+    do.call(rbind,.) %>% select(-cum_prop) %>% 
+       `colnames<-`(c("Sexe","Coté","Complète", "N", "%")) %>% 
+    mutate(`%` = `%`*100,
+           Coté = coalesce(Coté,Sexe),
+           Sexe = ifelse(Sexe == "Total", NA, Sexe)) 
+
+df[c(7,14),c(1,2,3)] = NA
+
+df %>% as_grouped_data(groups = c("Sexe")) %>% 
+    flextable() %>% 
+    set_table_properties(layout="autofit",width=1)
+
+
+# df = rbind(table_prop(epi$complete),
+#       table_prop(epi$cote)) %>% 
+#   mutate(var = c("No","Yes","Both","Right","Left","NA"),
+#          group = c(rep("Complete", 2), rep("Affected side", 4))) %>% 
+#   relocate(group, .before = dplyr::first(colnames(.))) %>% 
+#   as_grouped_data(groups = c("group"))  
+#   
+# flextable(df) %>% 
+#   set_header_labels(group = "Feature", var = "", n = "N", prop = "%") %>% 
+#   bold(j = 1, part = "body") %>%
+#   bold(part = "header") %>%
+#   set_table_properties(width = .75, layout = "autofit")
   # kable(col.names = c("Feature","n","%"), caption = "Cleft characteristics") %>%
   # kable_paper() %>% 
   # pack_rows(start_row = 1,end_row = 2,"Complete") %>% 
@@ -109,57 +135,67 @@ flextable(df) %>%
   # kable_styling(bootstrap_options = c("striped", "hover"))
 
 # Table2 prep -----------
-tab = table(epi$complete,epi$cote, deparse.level = 2, useNA = "ifany") %>% 
-  data.frame() %>%
-  rename(complete = epi.complete, `affected side` = epi.cote, n = Freq) %>% 
-  mutate(complete = rep(c("No","Yes"),4),
-         "%" = n*100/sum(n),
-         `affected side` = case_when(`affected side` == "bilaterale" ~ "Both",
-                                     `affected side` == "droite" ~ "Right",
-                                     `affected side` == "gauche" ~ "Left"),
-         "Gender"=""
-         ) %>% 
-  `colnames<-`(str_to_title(colnames(.))) %>% adorn_totals()
-
-tabf = table("gender"= epi$sexe[epi$sexe=="F"], 
-             epi$complete[epi$sexe=="F"],
-             epi$cote[epi$sexe=="F"], deparse.level = 2, useNA = "ifany") %>% 
-  data.frame() %>%
-  `colnames<-`(c("gender", "complete", "affected side", "n")) %>% 
-  mutate(complete = case_when(complete == 0 ~ "No",
-                              complete == 1 ~ "Yes"),
-         "%" = n*100/sum(n),
-         `affected side` = case_when(`affected side` == "bilaterale" ~ "Both",
-                                     `affected side` == "droite" ~ "Right",
-                                     `affected side` == "gauche" ~ "Left")
-    ) %>% 
-    `colnames<-`(str_to_title(colnames(.)))  %>% 
-    arrange(desc(N)) %>% adorn_totals
-
-tabm = table("gender"= epi$sexe[epi$sexe=="M"], 
-             epi$complete[epi$sexe=="M"],
-             epi$cote[epi$sexe=="M"], deparse.level = 2, useNA = "ifany") %>% 
-  data.frame() %>%
-  `colnames<-`(c("gender", "complete", "affected side", "n")) %>% 
-  mutate(complete = case_when(complete == 0 ~ "No",
-                              complete == 1 ~ "Yes"),
-         "%" = n*100/sum(n),
-         `affected side` = case_when(`affected side` == "bilaterale" ~ "Both",
-                                     `affected side` == "droite" ~ "Right",
-                                     `affected side` == "gauche" ~ "Left")
-    ) %>% 
-    `colnames<-`(str_to_title(colnames(.)))  %>% 
-    arrange(desc(N)) %>% adorn_totals
-
 # Table 2 ------
-rbind(tab,tabf,tabm) %>%
-  relocate(Gender, .before = "Complete") %>% 
-  as_grouped_data(groups = "Gender") %>%
-  flextable() %>% 
-  bold(j = 1, part = "body") %>%
-  bold(part = "header") %>%
-  flextable::theme_apa() %>%
-  set_table_properties(width = .75, layout = "autofit")
+# tab(epi,sexe,complete, cote, round = 4) %>% 
+#     arrange(sexe,desc(N)) %>% 
+#     mutate(prop = paste(prop*100,"%"),
+#            cum_prop = paste(cum_prop*100,"%")) %>% 
+#     as_grouped_data(group="sexe") %>% 
+#     as_flextable() %>% 
+#     set_table_properties(width = 1, layout = "autofit")
+
+
+# tab = table(epi$complete,epi$cote, deparse.level = 2, useNA = "ifany") %>% 
+#   data.frame() %>%
+#   rename(complete = epi.complete, `affected side` = epi.cote, n = Freq) %>% 
+#   mutate(complete = rep(c("No","Yes"),4),
+#          "%" = n*100/sum(n),
+#          `affected side` = case_when(`affected side` == "bilaterale" ~ "Both",
+#                                      `affected side` == "droite" ~ "Right",
+#                                      `affected side` == "gauche" ~ "Left"),
+#          "Gender"=""
+#          ) %>% 
+#   `colnames<-`(str_to_title(colnames(.))) %>% adorn_totals()
+# 
+# tabf = table("gender"= epi$sexe[epi$sexe=="F"], 
+#              epi$complete[epi$sexe=="F"],
+#              epi$cote[epi$sexe=="F"], deparse.level = 2, useNA = "ifany") %>% 
+#   data.frame() %>%
+#   `colnames<-`(c("gender", "complete", "affected side", "n")) %>% 
+#   mutate(complete = case_when(complete == 0 ~ "No",
+#                               complete == 1 ~ "Yes"),
+#          "%" = n*100/sum(n),
+#          `affected side` = case_when(`affected side` == "bilaterale" ~ "Both",
+#                                      `affected side` == "droite" ~ "Right",
+#                                      `affected side` == "gauche" ~ "Left")
+#     ) %>% 
+#     `colnames<-`(str_to_title(colnames(.)))  %>% 
+#     arrange(desc(N)) %>% adorn_totals
+# 
+# tabm = table("gender"= epi$sexe[epi$sexe=="M"], 
+#              epi$complete[epi$sexe=="M"],
+#              epi$cote[epi$sexe=="M"], deparse.level = 2, useNA = "ifany") %>% 
+#   data.frame() %>%
+#   `colnames<-`(c("gender", "complete", "affected side", "n")) %>% 
+#   mutate(complete = case_when(complete == 0 ~ "No",
+#                               complete == 1 ~ "Yes"),
+#          "%" = n*100/sum(n),
+#          `affected side` = case_when(`affected side` == "bilaterale" ~ "Both",
+#                                      `affected side` == "droite" ~ "Right",
+#                                      `affected side` == "gauche" ~ "Left")
+#     ) %>% 
+#     `colnames<-`(str_to_title(colnames(.)))  %>% 
+#     arrange(desc(N)) %>% adorn_totals
+# 
+# # Table 2 ------
+# rbind(tab,tabf,tabm) %>%
+#   relocate(Gender, .before = "Complete") %>% 
+#   as_grouped_data(groups = "Gender") %>%
+#   flextable() %>% 
+#   bold(j = 1, part = "body") %>%
+#   bold(part = "header") %>%
+#   flextable::theme_apa() %>%
+#   set_table_properties(width = .75, layout = "autofit")
 
 
  # rbind(tab,tabf,tabm) %>% select(-Gender) %>% 
@@ -172,94 +208,74 @@ rbind(tab,tabf,tabm) %>%
  #  pack_rows("Males",19,26)
 ```
 
-## Fentes by sexe
-
-```{r fentes by sexe, echo=F}
-table("Gender"= epi$sexe, epi$complete,epi$cote, deparse.level = 2, useNA = "ifany") %>% 
-  data.frame() %>%
-  rename(complete = epi.complete, `affected side` = epi.cote, n = Freq) %>% 
-  mutate(complete = case_when(complete == 0 ~ "No",
-                              complete == 1 ~ "Yes"),
-         "%" = n*100/sum(n),
-         `affected side` = case_when(`affected side` == "bilaterale" ~ "Both",
-                                     `affected side` == "droite" ~ "Right",
-                                     `affected side` == "gauche" ~ "Left")
-         ) %>% 
-  `colnames<-`(str_to_title(colnames(.))) %>% 
-  arrange(Gender,desc(N)) %>% select(-Gender) %>% 
-  kable(caption = "Clefts characteristics cross-table") %>%
-  kable_paper() %>% 
-  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive")) %>% 
-  add_footnote(c("NA = Not Available")) %>% 
-  pack_rows("Females",1,8) %>% 
-  pack_rows("Males",9,16)
-
-
-table(epi$sexe,epi$cote,epi$complete, deparse.level = 2, useNA = "ifany") %>% 
-  data.frame() %>%
-  group_by(epi.sexe) %>% 
-  mutate("%"=Freq*100/sum(Freq)) %>%
-  filter(Freq!=0) %>% 
-  arrange(epi.sexe) %>% 
-  ungroup() %>% 
-  select(-epi.sexe) %>% 
-  kable(caption = "Fentes by sexe") %>%
-  kable_paper(lightable_options = "striped") %>% 
-  pack_rows(start_row = 1,end_row = 4,"Femmes") %>% 
-  pack_rows(start_row = 5,end_row = 8,"Hommes") %>%
-  add_footnote(c("Complète 1/0 = oui/non",
-                 "Bilatérale 1/0 = oui/non",
-                 "NA = not available"))
-```
-
 # Etude {.tabset}
 ## Fentes operées
 ```{r fentes operées}
-table(etude$bilaterale,etude$cote_opere) %>%
-    as.data.frame() %>%
-    mutate("%"=Freq*100/sum(Freq,na.rm=T)) %>%
+tab(etude, cote_opere, round = 5) %>% 
+    mutate("%"=prop*100) %>%
     adorn_totals() %>% 
-    kable(col.names = c("Fente","Coté operé","n","%")) %>% 
-    kable_paper() %>% 
-    kable_styling(bootstrap_options = c("striped", "hover"))
+    select(-prop,-cum_prop) %>% 
+    flextable() %>% 
+    set_table_properties(layout="autofit", width = 1) 
+
+
+# table(etude$cote_opere) %>%
+#     as.data.frame() %>%
+#     mutate("%"=Freq*100/sum(Freq,na.rm=T)) %>%
+#     adorn_totals() %>% 
+#     kable(col.names = c("Coté operé","n","%")) %>% 
+#     kable_paper() %>% 
+#     kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
 ## Prelevement iliaque
 ```{r prelevement iliaque}
-table(etude$prelevement_iliaque) %>% 
-    as.data.frame() %>%
-    mutate("%"=Freq*100/sum(Freq,na.rm=T)) %>% 
-    adorn_totals() %>% 
-    kable(col.names = c("Prelevement iliaque","n","%")) %>% 
-  kable_paper() %>% 
-    kable_styling(bootstrap_options = c("striped", "hover"))
+proc_freq(etude, "prelevement_iliaque") %>% 
+set_header_labels(prelevement_iliaque= "Coté prélèvement iliaque", 
+                  Count="N", 
+                  Percent = "Percent") %>% 
+    set_table_properties(layout = "autofit", width = 1)
+
+# table(etude$prelevement_iliaque) %>% 
+#     as.data.frame() %>%
+#     mutate("%"=Freq*100/sum(Freq,na.rm=T)) %>% 
+#     adorn_totals() %>% 
+#     kable(col.names = c("Prelevement iliaque","n","%")) %>% 
+#   kable_paper() %>% 
+#     kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
 ## Age patients
+Pour les patients qui ont éTé operés en 2 étapes je fais la moyenne des ages.
 ```{r pyramid}
-# Create the age groups using cut
-etude$age_group <- cut(as.numeric(etude$age/12), breaks = seq(0, 20, 1), include.lowest = TRUE)
-
-    # Calculate the counts for each age group and sex
-tab <- etude %>%
-    count(age_group, sexe, name = "count")
-
-    # Create the plot
-ggplot(data = tab, aes(x = age_group, y = ifelse(sexe == "F", -count, count), fill = sexe)) +
+g = etude %>% group_by(patid,sexe) %>% 
+    summarise(age = mean(age/12)) %>% 
+    mutate(age = cut(age, breaks = seq(0, 20, 1), include.lowest = TRUE)) %>% 
+    ungroup() %>% 
+    select(-patid) %>% 
+    count(age,sexe) %>% 
+    ggplot(aes(x = age, y = ifelse(sexe == "F", -n, n), fill = sexe)) +
     geom_bar(stat = "identity", position = "identity") +
     scale_y_continuous(labels = abs, breaks = seq(-20,20,1)) +
-    labs(title = "Pyramid Age", x = "Age (années)", y = "n", fill = "Sexe") +
+    labs(title = "Pyramide des âges", x = "Age (années)", y = "N", fill = "Sexe") +
     theme_minimal() +
     coord_flip()
 
+# Printing plot
+g
+
+save_editable_plot(g,"pyramid des ages","graphs/")
 ```
 
 ```{r dispersion measures}
 # Dispersion mesures
-tab = describe(etude$age,fast = T) %>%
-  round(2) %>% 
-  as.data.frame %>%
-  select(-1,-8) 
+tab = etude %>% 
+    group_by(patid) %>% 
+    summarise(age=mean(age)) %$% 
+    describe(age,fast = T) %>%
+    round(2) %>% 
+    as.data.frame %>%
+    select(-1,-8)  
 
 tab2 = tab %>% 
   mutate(across(mean:range, function(x) fmckage::convert_time(x,
@@ -273,38 +289,84 @@ all = tab2 %>% mutate(n="") %$% ifelse(.!="",paste0(tab," (",.,")"),tab) %>%
   `colnames<-`(c("n","Mean","Sd","Min","Max","Range")) %>% 
   mutate(Gender = "") %>% relocate(Gender,.before = n)
 
-
-# Dispersion mesures by sexe
-tab = etude %>% 
-  group_by(sexe) %>% 
-  summarise(age = describe(age,fast = T)) %>% 
-  unnest(cols = c(age)) %>% 
-  mutate(across(mean:range, function(x) round(x, 2))) %>%  
-    select(-vars,-se)
+# by females
+tab = etude %>% filter(sexe=="F") %>% 
+    group_by(patid) %>% 
+    summarise(age=mean(age)) %$% 
+    describe(age,fast = T) %>%
+    round(2) %>% 
+    as.data.frame %>%
+    select(-1,-8)  
 
 tab2 = tab %>% 
-  mutate(across(mean:range ,function(x) convert_time(x,from = "months", to = c("years","months","days"))))
+    mutate(across(mean:range, function(x) fmckage::convert_time(x,
+                                                                from = "months", 
+                                                                to = c("years","months","days"), 
+                                                                warn_residual = F)))
 
 
-by_sex <- tab %>%
-    mutate(mean = paste0(mean, " (", tab2$mean, ")"),
-           sd = paste0(sd, " (", tab2$sd, ")"),
-           min = paste0(min, " (", tab2$min, ")"),
-           max = paste0(max, " (", tab2$max, ")"),
-           range = paste0(range, " (", tab2$range, ")")) %>% 
-  rename(Gender=sexe) %>% `colnames<-`(c("Gender","n","Mean","Sd","Min","Max","Range"))
+f = tab2 %>% mutate(n="") %$% ifelse(.!="",paste0(tab," (",.,")"),tab) %>% 
+    as.data.frame %>% 
+    `colnames<-`(c("n","Mean","Sd","Min","Max","Range")) %>% 
+    mutate(Gender = "F") %>% relocate(Gender,.before = n)
+
+# By males
+tab = etude %>% filter(sexe=="M") %>% 
+    group_by(patid) %>% 
+    summarise(age=mean(age)) %$% 
+    describe(age,fast = T) %>%
+    round(2) %>% 
+    as.data.frame %>%
+    select(-1,-8)  
+
+tab2 = tab %>% 
+    mutate(across(mean:range, function(x) fmckage::convert_time(x,
+                                                                from = "months", 
+                                                                to = c("years","months","days"), 
+                                                                warn_residual = F)))
 
 
-
-rbind(all, by_sex) %>% 
-    kable(row.names = F,
-          caption = "Age - Dispersion measures (months)") %>% 
-    kable_paper() %>% 
-    kable_styling(bootstrap_options = c("striped", "hover"))
+m = tab2 %>% mutate(n="") %$% ifelse(.!="",paste0(tab," (",.,")"),tab) %>% 
+    as.data.frame %>% 
+    `colnames<-`(c("n","Mean","Sd","Min","Max","Range")) %>% 
+    mutate(Gender = "M") %>% relocate(Gender,.before = n)
 
 
+# Dispersion mesures by sexe
+# tab = etude %>% filter(sexe=="F") %>% 
+#     group_by(patid) %>% 
+#     summarise(age=mean(age)) %$% describe(age,fast = T) %>% 
+#     select(-vars,-se) %>% 
+#     mutate(across(mean:range, function(x) round(x, 2)))
+#     
+# tab1 = etude %>% filter(sexe=="M") %>% 
+#     group_by(patid) %>% 
+#     summarise(age=mean(age)) %$% describe(age,fast = T) %>% 
+#     select(-vars,-se) %>% 
+#     mutate(across(mean:range, function(x) round(x, 2)))
+# 
+# tab2 = rbind(tab,tab1) %>% tibble %>% 
+#     mutate(across(mean:range ,function(x) convert_time(x,from = "months", to = c("years","months","days"))))
+# 
+# 
+# by_sex <- tab %>%
+#     mutate(mean = paste0(mean, " (", tab2$mean, ")"),
+#            sd = paste0(sd, " (", tab2$sd, ")"),
+#            min = paste0(min, " (", tab2$min, ")"),
+#            max = paste0(max, " (", tab2$max, ")"),
+#            range = paste0(range, " (", tab2$range, ")")) %>% 
+#   rename(Gender=sexe) %>% `colnames<-`(c("Gender","n","Mean","Sd","Min","Max","Range"))
 
 
+# Table
+rbind(all, f, m) %>% 
+    flextable %>%
+    set_table_properties(width=1, layout="autofit")
+# 
+#     kable(row.names = F,
+#           caption = "Age - Dispersion measures (months)") %>% 
+#     kable_paper() %>% 
+#     kable_styling(bootstrap_options = c("striped", "hover"))
 
 
 ```
@@ -312,13 +374,16 @@ rbind(all, by_sex) %>%
 ## Traitement ODF
 ```{r ttt odf}
 # 1) Combien de patients ont eu un traitement ODF pré chir ?
-etude %>% 
-  distinct(patid, odf_prechir) %$%
-  table_prop(odf_prechir)  %>% 
-  kable(col.names = c("ODF prechir","n","%")) %>% 
-  kable_paper() %>%
-  add_footnote(c("ODF prechir 1/0 = oui/non",
-                 "NA = not available"))
+proc_freq(etude,"odf_prechir") %>% 
+    set_table_properties(width=1,layout = "autofit")
+
+# etude %>% 
+#   distinct(patid, odf_prechir) %$%
+#   table_prop(odf_prechir)  %>% 
+#   kable(col.names = c("ODF prechir","n","%")) %>% 
+#   kable_paper() %>%
+#   add_footnote(c("ODF prechir 1/0 = oui/non",
+#                  "NA = not available"))
 
 
 # 2) temps moyen d’une prise en charge ODF avant la chirurgie 
@@ -340,6 +405,10 @@ tab3 = rbind(tab,tab2) %>%
 
     # joining tables
 rbind(tab,tab2,tab3) %>% 
+    flextable() %>% 
+    set_table_properties(width=1,layout="autofit")
+    
+rbind(tab,tab2,tab3) %>%     
   `row.names<-`(c("Tous","F","M","tous","f","m")) %>% 
     kable(col.names = c("n", "moyenne", "écart type","min","max","range"), 
           row.names = T,

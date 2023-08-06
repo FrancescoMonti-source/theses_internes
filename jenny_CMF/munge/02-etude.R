@@ -35,3 +35,5 @@ etude = etude %>%
 
 etude = left_join(etude,epi[c("patid","sexe")]) %>%
     relocate(sexe,.after=patid)
+
+etude$cote_opere[which(etude$cote_opere=="gauhe")] = "gauche"

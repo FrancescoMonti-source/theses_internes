@@ -99,7 +99,7 @@ rbind(table_prop(epi$complete),
     flextable() %>% 
   set_header_labels(group = "Feature", var = "", n = "N", prop = "%") %>% 
   bold(j = 1, part = "body") %>%
-  bold(part = "header") %>%
+  bold(part = "header") %>% 
   set_table_properties(width = 1, layout = "autofit")
   # kable(col.names = c("Feature","n","%"), caption = "Cleft characteristics") %>%
   # kable_paper() %>% 
