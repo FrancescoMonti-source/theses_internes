@@ -17,9 +17,6 @@ output:
 subtitle: Revue des pratiques gingivopériostoplastie
 ---
 
----myyamltemplate
-
-
 
 ```{r libraries, echo = F, include=F}
 library(tidyverse)     # The main "tidyverse" packages.
@@ -126,6 +123,7 @@ df = tab(epi,sexe,cote,complete, round = 4) %>%
 df[c(7,14),c(1,2,3)] = NA
 
 df %>% as_grouped_data(groups = c("Sexe")) %>% 
+    slice(-8,-17) %>% 
     flextable() %>% 
     set_table_properties(layout="autofit",width=1)
 
@@ -301,7 +299,7 @@ g = etude %>% group_by(patid,sexe) %>%
 # Printing plot
 g
 
-save_editable_plot(g,"pyramid des ages","../graphs")
+save_editable_plot(g,"pyramid des ages", "../graphs/")
 ```
 
 ### Mesures de dispersion
@@ -466,6 +464,20 @@ rbind(tab,tab2,tab3) %>%
 
 ```
 
+
+```{r duree_odf_vs_compliance}
+etude %>% 
+    filter(!is.na(compliance_ttt)) %>%
+    ggplot()+
+    geom_boxplot(aes(x = compliance_ttt, y = odf_prechir_months, fill = compliance_ttt))+
+    scale_y_continuous(breaks = seq(0,150,10))+
+    labs(fill = "Compliance",
+         title = "Durée ODF prechir selon la compliance au treatement",
+         y = "Durée ttt (en mois)",
+         x = "Compliance")
+```
+
+
 ## Temps hospitalisation
 ```{r duree_hospit}
 # Mesures de dispersion
@@ -509,35 +521,44 @@ g = etude %>%
 
 g
 
-save_editable_plot(g,"duree_sej","../graphs")
+save_editable_plot(g,"duree_sej",path = "../graphs/")
 
 
 ```
 
 
-## Age intervention vs ODF
+## Age intervention vs ODF/état bucco-dentaire/compliance
 ```{r}
 
 g1 = etude %>% 
     filter(!is.na(odf_prechir)) %>% 
     ggplot()+
-    geom_boxplot(aes(x = factor(odf_prechir), y = age))+
+    geom_boxplot(aes(x = factor(odf_prechir), y = age, fill = odf_prechir))+
     scale_y_continuous(breaks = seq(0,300,12), labels = function(x) x/12)+
-    labs(title = "Distribution age vs ODF prechir")
+    labs(title = "Distribution age vs ODF prechir",
+         x = "Traitement ODf pre-chir",
+         y = "Age",
+         fill =  "ODF prechir")
 
 g2 = etude %>% 
     filter(!is.na(etat_bd)) %>% 
     ggplot()+
-    geom_boxplot(aes(x = etat_bd, y = age))+
+    geom_boxplot(aes(x = etat_bd, y = age, fill = etat_bd))+
     scale_y_continuous(breaks = seq(0,300,12), labels = function(x) x/12)+
-    labs(title = "Distribution age vs état bucco-dentaire")
+    labs(title = "Distribution age vs état bucco-dentaire",
+         x = "Etat bucco-dentaire",
+         y = "Age",
+         fill = "Etat bucco-dentaire")
 
 g3 = etude %>% 
     filter(!is.na(compliance_ttt)) %>% 
     ggplot()+
-    geom_boxplot(aes(x = compliance_ttt, y = age))+
+    geom_boxplot(aes(x = compliance_ttt, y = age, fill = compliance_ttt))+
     scale_y_continuous(breaks = seq(0,400,12), labels = function(x) x/12)+
-    labs(title = "Distribution age vs compliance ODF")
+    labs(title = "Distribution age vs compliance ODF",
+         x = "Compliance",
+         y = "Age",
+         fill = "Compliance")
 
 # Print plots
 g1
@@ -623,17 +644,16 @@ surgeon_alone <- lc$time[lc$interne == 0 & lc$double==0]
 surgeon_with_helper <- lc$time[lc$interne == 1 & lc$double==0]
 
 tstudent = t.test(surgeon_alone, surgeon_with_helper)
-
+tstudent
 # P-value
-data.frame("P-value", pval_format(tstudent$p.value)) %>% 
-    `colnames<-`(c(""," "))
+# data.frame("P-value", pval_format(tstudent$p.value)) %>% 
+#     `colnames<-`(c(""," "))
     # kable(col.names = c("",""), caption = "Test t student") %>%
     # kable_paper()
 
 # Mean difference between the groups
 tstudent$estimate %>% 
-  as.data.frame(row.names = c("AVEC interne", "SANS interne")) %>% 
-  `colnames<-`("Temps (minutes)") 
+  as.data.frame(row.names = c("AVEC interne", "SANS interne"))  %>% rownames_to_column()%>% `colnames<-`(c(" ","Temps (minutes)")) %>% flextable %>% set_table_properties(width = 1, layout = "autofit") %>% set_caption("Les internes sont importants faut les traiter bien")
   # kable(caption = "Temps moyen d'intervention") %>% 
   # kable_paper()
 
@@ -665,6 +685,210 @@ dwtest(model)
 ```
 
 
+# CBCT (26 patients){.tabset}
+## Délai ODF-chi / chir-ODF
+```{r}
+paste("Délai cbct-chir",round(mean(radio$delai_cbct_chir),2),"mois")
+paste("Délai chir-cbct", round(mean(radio$delai_chir_cbct),2),"mois")
+```
+
+## Concordance mesures volume fente
+Le **coefficient de corrélation intraclasse (ICC)** est une mesure précieuse lorsque on évalue la fiabilité des mesures, en particulier dans un scénario de mesures répétées et/ou lorsque plusieurs évaluateurs sont impliqués. Ils existent plusieurs types de **ICC** mais celui qui nous interesse en ce moment est l'ICC1. L'ICC1 est sensible aux différences de moyennes entre les évaluateurs (ou 2 évaluation par le même évaluateur dans ton cas) et constitue une mesure de concordance absolue.
+
+```{r icc_26}
+psych::ICC(radio[c("vol1_fente","vol2_fente")])$results[1,]
+```
+
+L'**ICC** que calculé montre essentiellement que l'opérateur est très cohérent lorsqu'il répète les mesures. Comme les valeurs de l'ICC sont toutes égales à ~1, cela implique une répétabilité parfaite, ce qui est assez rare. Cela peut signifier que les mesures sont effectivement très cohérentes ou qu'il peut y avoir un problème avec les données ou la manière dont les mesures ont été prises (par exemple, un biais systématique).
+<br>
+Le calcul du **coefficient de corrélation de Pearson** entre les deux séries de mesures répétées nous donne une indication de la relation linéaire entre la première et la deuxième mesure. Si la corrélation est proche de 1, cela signifie que si une mesure est élevée lors de la première mesure, elle l'est également lors de la seconde, ce qui indique une bonne répétabilité.
+
+**Toutefois, il est important de noter qu'une corrélation de Pearson élevée n'indique pas nécessairement une concordance.** Par exemple, les mesures du premier et du deuxième point dans le temps peuvent systématiquement différer d'une certaine quantité constante, ce qui entraîne une corrélation élevée mais une faible concordance. C'est pourquoi l'ICC est souvent préféré dans ces scénarios, car il combine les aspects de la variance et de l'accord.
+
+La corrélation de Pearson est une mesure plus simple et peut être utilisée pour avoir une idée rapide de la relation linéaire entre deux ensembles de mesures. Toutefois, pour une compréhension globale de la répétabilité et de la fiabilité, il est préférable d'utiliser l'ICC.
+
+Nous pouvons aussi créer une répresentation graphique de la consistence de l'operateur. Cela c'est un graphe de *Bland-Altman*:
+
+```{r bland_altman_26}
+means <- (radio$vol1_fente + radio$vol2_fente) / 2
+differences <- radio$vol1_fente - radio$vol2_fente
+percentage_differences <- (differences / means) * 100
+
+# Plot
+bland_altman_plot <- ggplot() +
+  geom_point(aes(x = means, y = percentage_differences)) +
+  geom_hline(yintercept = mean(percentage_differences), color = "red") + 
+  labs(title = "Cleft volume measurements: Bland-Altman Plot", 
+       x = "Mean of measurements", 
+       y = "Difference as a percentage of the mean") +
+  scale_y_continuous(labels = scales::percent_format(scale = 1))  # Display Y axis as percentages
+
+print(bland_altman_plot)
+
+save_editable_plot(bland_altman_plot, "Cleft volume measurements: Bland-Altman Plot (`vielle` technique chir)", "../graphs")
+
+```
+
+### Lire le diagramme de Bland-Altman
+Voici comment interpréter un diagramme de Bland-Altman :
+
+*Axe X* : Représente la moyenne des deux mesures.
+
+$Moyenne = (Mesure 1 + Mesure 2)/2$
+
+*Axe Y*: Représente la différence entre les deux mesures.
+
+$Différence = Mesure 1 - Mesure 2$
+
+*Points* : Chaque point du graphique représente une mesure individuelle. La position du point est déterminée par la moyenne des deux mesures (coordonnée X) et la différence entre elles (coordonnée Y).
+
+*Ligne centrale rouge* : Il s'agit généralement d'une ligne horizontale tracée au niveau de la différence moyenne. Elle représente le biais moyen entre les deux méthodes.
+
+**Interprétation du graphique :**
+
+Si la différence moyenne (ligne centrale) est proche de zéro, cela signifie que le biais fixe entre les deux méthodes est minime. Si elle est significativement différente de zéro, cela indique une différence systématique (ou un biais) entre les mesures.
+
+Plus les points de données sont proches de la ligne centrale (différence moyenne), meilleure est la concordance. Si les points sont très dispersés, cela indique une plus grande variabilité des différences.
+
+Tendances : Si vous observez des tendances dans la dispersion, telles que des différences qui augmentent ou diminuent en fonction de l'ampleur de la mesure, cela suggère un biais proportionnel. Par exemple, si les différences ont tendance à augmenter à mesure que les mesures moyennes augmentent, cela signifie que les deux méthodes pourraient ne pas être en accord de manière cohérente sur l'ensemble des mesures.
+
+En résumé, le diagramme de Bland-Altman permet d'évaluer visuellement la concordance entre deux set de mésures ou 2 méthodes, en tenant compte des biais fixes et proportionnels.
+
+## Concordance mesures volume greffe
+Même chose mais pour les mésuration du volume de la greffe
+```{r}
+psych::ICC(radio[c("vol1_greffe","vol2_greffe")])$results[1,]
+means <- (radio$vol1_greffe + radio$vol2_greffe) / 2
+differences <- radio$vol1_greffe - radio$vol2_greffe
+percentage_differences <- (differences / means) * 100
+
+# Plot
+bland_altman_plot <- ggplot() +
+    geom_point(aes(x = means, y = percentage_differences)) +
+    geom_hline(yintercept = mean(percentage_differences), color = "red") + 
+    labs(title = "Graft volume measurements: Bland-Altman Plot", 
+         x = "Mean of measurements", 
+         y = "Difference as a percentage of the mean") +
+    scale_y_continuous(labels = scales::percent_format(scale = 1))  # Display Y axis as percentages
+
+print(bland_altman_plot)
+
+save_editable_plot(bland_altman_plot, "Graft volume measurements: Bland-Altman Plot (`vielle` technique chir)", "../graphs")
+```
+
+## Dents sur arcade
+```{r dents_arcade}
+proc_freq(radio,"dent_sur_arcade") %>% 
+    set_table_properties(width = 1, layout = "autofit") %>% 
+    set_caption("Dents sur arcade")
+```
+## Pont osseux
+```{r}
+proc_freq(radio,"pont_osseux") %>% 
+    set_table_properties(width = 1, layout = "autofit") %>% 
+    set_caption("Pont osseux")
+```
+
+## Succès
+```{r}
+proc_freq(radio,"succes") %>% 
+    set_table_properties(width = 1, layout = "autofit") %>% 
+    set_caption("Succès")
+```
+
+## Recidive
+```{r}
+proc_freq(radio,"evaluation_clinique__recidive_")%>% 
+    set_table_properties(width = 1, layout = "autofit") %>% 
+    set_caption("Recidive clinique - procedure standard")
+
+proc_freq(radio,"evaluation_3d__recidive_")%>% 
+    set_table_properties(width = 1, layout = "autofit") %>% 
+    set_caption("Recidive 3D - procedure standard")
+
+```
+
+
+# Etude préliminaire (13 patients){.tabset}
+## Délai cbct postop
+```{r}
+paste("Délai CBCT postop", round(mean(prelim$cbct_postop_mois),2),"mois")
+```
+## Complications repo
+```{r}
+proc_freq(prelim, "complication_repo") %>% 
+    set_table_properties(width = 1, layout = "autofit") %>% 
+    set_caption("Complications repose appareil")
+```
+
+## Concordance mesures volume fente
+```{r icc_13}
+psych::ICC(prelim[c("vol1_fente","vol2_fente")])$results[1,]
+```
+
+```{r bland_altman}
+means <- (prelim$vol1_fente + prelim$vol2_fente) / 2
+differences <- prelim$vol1_fente - prelim$vol2_fente
+percentage_differences <- (differences / means) * 100
+
+# Plot
+bland_altman_plot <- ggplot() +
+  geom_point(aes(x = means, y = percentage_differences)) +
+  geom_hline(yintercept = mean(percentage_differences), color = "red") + 
+  labs(title = "Pilot study - Cleft volume measurements: Bland-Altman Plot", 
+       x = "Mean of measurements", 
+       y = "Difference as a percentage of the mean") +
+  scale_y_continuous(labels = scales::percent_format(scale = 1))  # Display Y axis as percentages
+
+print(bland_altman_plot)
+
+save_editable_plot(bland_altman_plot, "Pilot study - Cleft volume measurements: Bland-Altman Plot", "../graphs")
+
+```
+
+## Concordance mesures volume greffe
+```{r}
+psych::ICC(prelim[c("vol1_greffe","vol2_greffe")])$results[1,]
+means <- (prelim$vol1_greffe + prelim$vol2_greffe) / 2
+differences <- prelim$vol1_greffe - prelim$vol2_greffe
+percentage_differences <- (differences / means) * 100
+
+# Plot
+bland_altman_plot <- ggplot() +
+    geom_point(aes(x = means, y = percentage_differences)) +
+    geom_hline(yintercept = mean(percentage_differences), color = "red") + 
+    labs(title = "Pilot study - Graft volume measurements: Bland-Altman Plot", 
+         x = "Mean of measurements", 
+         y = "Difference as a percentage of the mean") +
+    scale_y_continuous(labels = scales::percent_format(scale = 1))  # Display Y axis as percentages
+
+print(bland_altman_plot)
+
+save_editable_plot(bland_altman_plot, "Pilot study - Graft volume measurements: Bland-Altman Plot", "../graphs")
+```
+
+## % comblement technique standard vs etude preliminaire
+Ca ne demontre rien mais c'est intéressant de le regarder et comparer les 2 moyennes
+```{r}
+paste("Comblement moyen etude preliminaire:", round(mean(prelim$comblement),2),"%")
+
+paste("Comblement moyen procedure standard:", round(mean(radio$comblement),2),"%")
+
+```
+
+## Recidive
+Pour les 26 de la procedure classique ainsi que pour les 13 de l'étude preliminaire, l'évaluation 3d est tjrs en accord avec celle clinique.
+Le taux de recidive semble bcp plus bas en passant de 65% à 23%. 
+```{r}
+proc_freq(prelim,"recidive_eval_clinique")%>% 
+    set_table_properties(width = 1, layout = "autofit") %>% 
+    set_caption("Recidive clinique - etude preliminaire")
+
+proc_freq(prelim,"recidive_eval_3d")%>% 
+    set_table_properties(width = 1, layout = "autofit") %>% 
+    set_caption("Recidive 3D - etude preliminaire")
+
+```
 
 
 
