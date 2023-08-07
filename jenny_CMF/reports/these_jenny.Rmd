@@ -3,10 +3,23 @@ title: "Thèse Jenny CMF"
 author: "Francesco Monti"
 date: "2023-07-25 12:26:12"
 output:
-  word_document: default
-  officedown::rdocx_document: default
+    bookdown::html_document2: 
+        toc:         yes        # Table of contents (toc): yes no
+        toc_float:   yes        # yes no
+        toc_depth:   3              # 1 2 3 4 5
+        highlight : pygments      # default tango kate monochrome espresso pygments...
+        highlight_downlit : FALSE      # TRUE to use the downlit package as syntax highlight engine to highlight inline code and R code chunks (including providing hyperlinks to function documentation). The package needs to be installed to use this feature.
+        code_folding:    "hide"     # none show hide
+        code_download:   yes        # yes no
+        fig_caption: yes        # yes no
+    officedown::rdocx_document: default
+    word_document: default
 subtitle: Revue des pratiques gingivopériostoplastie
 ---
+
+---myyamltemplate
+
+
 
 ```{r libraries, echo = F, include=F}
 library(tidyverse)     # The main "tidyverse" packages.
@@ -27,7 +40,7 @@ library(janitor)
 library(ggthemes)
 
 library(ProjectTemplate)
-#setwd("..")
+setwd("..")
 load.project()
 library(officer)
 library(flextable)
@@ -40,11 +53,12 @@ library(officedown)
 knitr::opts_chunk$set(
   echo       = F,    # Should blocks with program code be shown in knitted documents?
   eval       = TRUE,    # Should program code be evaluated?
-  #fig.height = 6,       # Default height for plots.
-  #fig.width  = 10,       # Default width for plots.
+  fig.height = 4,       # Default height for plots.
+  fig.width  = 6.66,       # Default width for plots.
   fig.align  = "center", # Default alignment for plots in knitted documents.
-  #fig.fullwidth = T,
-  warning = F 
+  fig.fullwidth = T,
+  warning = F,
+  message = F
 )
 
 # Options to format numbers
@@ -246,7 +260,30 @@ set_header_labels(prelevement_iliaque= "Coté prélèvement iliaque",
 ```
 
 ## Age patients
-Pour les patients qui ont éTé operés en 2 étapes je fais la moyenne des ages.
+Pour les 11 patients qui ont éTé operés en 2 étapes je ferais la moyenne de leurs ages. Mais avant de le faire je voudrais regarder pour curiosité la distribution des distances temporelles entre **intervention 1** et **intervention 2**.
+```{r }
+# patients which underwent surgery on 2 different occasions
+index = etude %>% 
+    group_by(patid) %>% 
+    summarise(n=n()) %>% 
+    filter(n==2) %>%
+    pull(patid)
+
+etude %>% 
+    filter(patid %in% index) %>%
+    select(patid,age) %>% 
+    mutate(time = rep(c("time_1","time_2"),11)) %>% 
+    pivot_wider(names_from = time, values_from = age) %>% 
+    mutate(diff = time_2 - time_1) %$%
+    describe(diff, fast = T) %>% 
+    select(-vars,-se) %>% tibble() %>% 
+    #mutate(across(mean:range, function(x) convert_time(x, from = "months", to = c("years","months","days"))))
+    flextable() %>%
+    set_table_properties(width=1,layout="autofit")
+
+```
+
+### Pyramid des ages
 ```{r pyramid}
 g = etude %>% group_by(patid,sexe) %>% 
     summarise(age = mean(age/12)) %>% 
@@ -264,9 +301,10 @@ g = etude %>% group_by(patid,sexe) %>%
 # Printing plot
 g
 
-save_editable_plot(g,"pyramid des ages","graphs/")
+save_editable_plot(g,"pyramid des ages","../graphs")
 ```
 
+### Mesures de dispersion
 ```{r dispersion measures}
 # Dispersion mesures
 tab = etude %>% 
@@ -372,7 +410,7 @@ rbind(all, f, m) %>%
 ```
 
 ## Traitement ODF
-```{r ttt odf}
+```{r ttt_odf}
 # 1) Combien de patients ont eu un traitement ODF pré chir ?
 proc_freq(etude,"odf_prechir") %>% 
     set_table_properties(width=1,layout = "autofit")
@@ -405,23 +443,31 @@ tab3 = rbind(tab,tab2) %>%
 
     # joining tables
 rbind(tab,tab2,tab3) %>% 
+    tibble() %>% 
+    mutate(group = rep(c("Tous","F","M"),2),
+           format = c(rep("Months",3),rep("YMD",3))) %>% 
+    relocate(group, .before = n) %>% 
+    relocate(format,.before = group) %>% 
+    as_grouped_data(groups = "format") %>% 
     flextable() %>% 
-    set_table_properties(width=1,layout="autofit")
+    set_caption(caption = "Durée traitement ODF prechir") %>% 
+    set_header_labels(values = c(format = "")) %>% 
+    set_table_properties(width=1, layout="autofit")
     
-rbind(tab,tab2,tab3) %>%     
-  `row.names<-`(c("Tous","F","M","tous","f","m")) %>% 
-    kable(col.names = c("n", "moyenne", "écart type","min","max","range"), 
-          row.names = T,
-          caption = "Durée prise en charge ODF pre chir - Mesures de dispersion", 
-          digits = 2) %>% 
-  kable_paper() %>% 
-  pack_rows("Mois",1,3) %>% 
-  pack_rows("Years - months - days",4,6)
+# rbind(tab,tab2,tab3) %>%     
+#   `row.names<-`(c("Tous","F","M","tous","f","m")) %>% 
+#     kable(col.names = c("n", "moyenne", "écart type","min","max","range"), 
+#           row.names = T,
+#           caption = "Durée prise en charge ODF pre chir - Mesures de dispersion", 
+#           digits = 2) %>% 
+#   kable_paper() %>% 
+#   pack_rows("Mois",1,3) %>% 
+#   pack_rows("Years - months - days",4,6)
 
 ```
 
 ## Temps hospitalisation
-```{r duree hospit}
+```{r duree_hospit}
 # Mesures de dispersion
 t_hospit = describe(etude$duree_sej, fast = T)[-c(1,8)] %>% round(2)
 
@@ -435,39 +481,72 @@ tab2 = t_hospit %>%
 
     # Binding
 rbind(as.character(t_hospit),tab1,tab2) %>%  
-    mutate(rownames = c("","Days","Hours")) %>% 
-    column_to_rownames(var = "rownames") %>% 
-    kable(row.names = T, 
-          caption = "Temps d'hispitalisation - mesures de dispersion", 
-          col.names = c("n", "moyenne", "écart type","min","max","range")) %>%
-    kable_paper()
+    mutate(rownames = c("Days","Days (DHM)","Hours")) %>% 
+    #column_to_rownames(var = "rownames") %>%
+    relocate(rownames,.before = n) %>% 
+    flextable() %>% 
+    set_table_properties(width = 1,layout = "autofit") %>% 
+    set_caption("Temps d'hospitalisation (jours)")
+    # set_header_labels(values = c(rownames = ""))
+    # kable(row.names = T, 
+    #       caption = "Temps d'hispitalisation - mesures de dispersion", 
+    #       col.names = c("n", "moyenne", "écart type","min","max","range")) %>%
+    # kable_paper()
 
 # Table durée hospitalisation
-table_prop(etude$duree_sej, name = "Durée hospit (jours)") %>% 
-    kable(caption = "Tableau durée sejour") %>%
-    kable_paper()
+proc_freq(etude, "duree_sej") %>% 
+    set_table_properties(width = 1, layout = "autofit") %>% 
+    set_header_labels(values = c(duree_sej = "durée_sej en jours")) %>% 
+    set_caption("Durée sejour")
+
+g = etude %>% 
+    count(duree_sej) %>% 
+    ggplot()+
+    geom_col(aes(x = duree_sej, y = n))+
+    scale_y_continuous(breaks = seq(0,120,10))+
+    labs(title = "Durée sejour",
+         x = "Jours")
+
+g
+
+save_editable_plot(g,"duree_sej","../graphs")
+
 
 ```
 
 
 ## Age intervention vs ODF
 ```{r}
-plot(etude$age,etude$odf_prechir)
 
-etude %>% 
+g1 = etude %>% 
+    filter(!is.na(odf_prechir)) %>% 
     ggplot()+
     geom_boxplot(aes(x = factor(odf_prechir), y = age))+
-    scale_y_continuous(breaks = seq(0,300,12), labels = function(x) x/12)
+    scale_y_continuous(breaks = seq(0,300,12), labels = function(x) x/12)+
+    labs(title = "Distribution age vs ODF prechir")
 
-etude %>% 
+g2 = etude %>% 
+    filter(!is.na(etat_bd)) %>% 
     ggplot()+
     geom_boxplot(aes(x = etat_bd, y = age))+
-    scale_y_continuous(breaks = seq(0,300,12), labels = function(x) x/12)
+    scale_y_continuous(breaks = seq(0,300,12), labels = function(x) x/12)+
+    labs(title = "Distribution age vs état bucco-dentaire")
 
-etude %>% 
+g3 = etude %>% 
+    filter(!is.na(compliance_ttt)) %>% 
     ggplot()+
     geom_boxplot(aes(x = compliance_ttt, y = age))+
-    scale_y_continuous(breaks = seq(0,300,12), labels = function(x) x/12)
+    scale_y_continuous(breaks = seq(0,400,12), labels = function(x) x/12)+
+    labs(title = "Distribution age vs compliance ODF")
+
+# Print plots
+g1
+g2
+g3
+
+save_editable_plot(g1,"Boxplot age vs ODF prechir", "../graphs")
+save_editable_plot(g2,"Boxplot age vs état bucco-dentaire", "../graphs")
+save_editable_plot(g3,"Boxplot age vs compliance ODF", "../graphs")
 
 ```
 
@@ -475,16 +554,16 @@ etude %>%
 
 ## Suites
 ```{r suites}
-table_prop(etude$complications, name = "complications") %>% 
-    kable(caption = "Suites compliquées oui/non") %>% 
-    kable_paper()
+proc_freq(etude, "complications") %>% 
+    set_table_properties(width = 1, layout = "autofit") %>% 
+    set_caption(caption = "Suites compliquées oui/non")
 ```
 
 # Learning curve{.tabset}
 ## Graphe
-```{r learning curve, message=F}
+```{r learning_curve, message=F}
 # Plot
-lc %>% 
+g = lc %>% 
   #filter(double==0) %>% 
 ggplot(aes(x = as_date(date), y = time, color = factor(interne, labels = c("Oui","Non"))))+
     geom_point(position = "identity", aes(shape = factor(double)), size = 2.5)+
@@ -497,6 +576,11 @@ ggplot(aes(x = as_date(date), y = time, color = factor(interne, labels = c("Oui"
          x = "Date intervention",
          shape = "Intervention bilatérale",
          color = "Interne")
+
+g
+
+save_editable_plot(g, "Learning curve", "../graphs")
+
 ```
 
 Les lignes colorées du graphique montrent la tendance moyenne dans le temps pour chaque groupe : une pour les cas où le chirurgien effectue l'opération seul, et une autre pour les cas où il était assisté par un interne. Il s'agit en quelque sorte d'une "meilleure estimation" de la durée moyenne de l'opération à une date donnée, sur la base des données dont nous disposons.
@@ -512,7 +596,11 @@ Dans ce contexte, la zone ombrée représente notre "à peu près" pour le temps
 # Mann-Kendall test on the sorted data
 mk = lc %>% arrange(date) %>% filter(double==0) %$% MannKendall(time)
   # Printint the results nicely
-cbind("Tau" = round(mk$tau,3), "p-value" = pval_format(mk$sl)) %>% kable(caption ="Mann-Kendall test") %>% kable_paper()
+cbind("Tau" = round(mk$tau,3), "p-value" = pval_format(mk$sl)) %>% 
+    as.data.frame() %>%
+    flextable() %>%
+    set_table_properties(width = 1, layout = "autofit") %>%
+    set_caption("Mann-Kendall test")
 ```
 
 Pour tester formellement une tendance, nous pouvons utiliser le test de tendance de Mann-Kendall, un test non paramétrique largement utilisé pour détecter les tendances dans les données de séries temporelles. Le test ne suppose pas de distribution spécifique des données et il est particulièrement utile lorsqu'il s'agit de données qui ne sont pas normalement distribuées.
@@ -530,26 +618,29 @@ J'au exclu du test statistique les interventions doubles (qui sont seulement 6).
 
 Dans le graphe, le fait que les zones ombrées des deux groupes ne se chevauchent pas beaucoup nous indique qu'il existe une différence notable entre les deux scénarios : lorsque le chirurgien travaille seul et lorsqu'il est assisté. Cela n'est pas une surprise et le graphe parle tellement clair que faire un test stat est un peu ridicule mais voici ce que ça donne si on fait un test de student (pour comparer la durée moyenne entre "avec interne" et "sans interne"). A nouveau moi j'ai exclu les 6 interventions bilatérale dans ce test (seulement 1 bilatérale et avec interne). La différence entre la moyenne des 2 groupes est le temps que l'interne fait gagner en moyenne.
 
-```{r interne impact}
+```{r interne_impact}
 surgeon_alone <- lc$time[lc$interne == 0 & lc$double==0]
 surgeon_with_helper <- lc$time[lc$interne == 1 & lc$double==0]
 
 tstudent = t.test(surgeon_alone, surgeon_with_helper)
 
 # P-value
-data.frame("P-value", pval_format(tstudent$p.value)) %>% kable(col.names = c("",""), caption = "Test t student") %>% kable_paper()
+data.frame("P-value", pval_format(tstudent$p.value)) %>% 
+    `colnames<-`(c(""," "))
+    # kable(col.names = c("",""), caption = "Test t student") %>%
+    # kable_paper()
 
 # Mean difference between the groups
 tstudent$estimate %>% 
   as.data.frame(row.names = c("AVEC interne", "SANS interne")) %>% 
-  `colnames<-`("Temps (minutes)") %>% 
-  kable(caption = "Temps moyen d'intervention") %>% 
-  kable_paper()
+  `colnames<-`("Temps (minutes)") 
+  # kable(caption = "Temps moyen d'intervention") %>% 
+  # kable_paper()
 
 ```
+L'interne fait épargner 26.4 minutes, l'intervention est en moyenne 19.8% plus rapide.
 
-
-```{r linear regression, include = F}
+```{r linear_regression, include = F}
 # Trying a lm()
 model <- lm(time ~ date, data = lc)
 summary(model)
