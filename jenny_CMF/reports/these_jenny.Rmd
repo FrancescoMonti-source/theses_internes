@@ -891,5 +891,13 @@ proc_freq(prelim,"recidive_eval_3d")%>%
 ```
 
 
+```{r}
+library(openxlsx)
+
+write.xlsx(radio, "cbct_procedure_standard.xlsx")
+write.xlsx(prelim, "cbct_etude_preliminaire.xlsx")
+
+
+```
 
 
