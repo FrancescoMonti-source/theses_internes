@@ -3,6 +3,7 @@ title: "Thèse Jenny CMF"
 author: "Francesco Monti"
 date: "2023-07-25 12:26:12"
 output:
+    officedown::rdocx_document: default
     bookdown::html_document2: 
         toc:         yes        # Table of contents (toc): yes no
         toc_float:   yes        # yes no
@@ -12,7 +13,6 @@ output:
         code_folding:    "hide"     # none show hide
         code_download:   yes        # yes no
         fig_caption: yes        # yes no
-    officedown::rdocx_document: default
     word_document: default
 subtitle: Revue des pratiques gingivopériostoplastie
 ---
