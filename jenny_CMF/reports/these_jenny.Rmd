@@ -128,6 +128,20 @@ df %>% as_grouped_data(groups = c("Sexe")) %>%
     set_table_properties(layout="autofit",width=1)
 
 
+# Characteristiques fentes
+tab(epi,sexe,cote,complete, round = 4) %>%
+  select(-cum_prop) %>% 
+  `colnames<-`(c("Sexe","Coté","Complète", "N", "%")) %>%
+  mutate(Complète = case_when(Complète == 0 ~ "incomplète", 
+                              Complète == 1 ~ "complète"),
+         `%` = `%`*100) %>% 
+  pivot_wider(names_from = Sexe, values_from = c(N,"%")) %>% 
+  flextable() %>% 
+  set_table_properties(layout="autofit",width=1) %>% 
+  set_caption("Characteristiques fentes")
+
+
+
 # df = rbind(table_prop(epi$complete),
 #       table_prop(epi$cote)) %>% 
 #   mutate(var = c("No","Yes","Both","Right","Left","NA"),
@@ -267,17 +281,23 @@ index = etude %>%
     filter(n==2) %>%
     pull(patid)
 
-etude %>% 
+tab = etude %>% 
     filter(patid %in% index) %>%
     select(patid,age) %>% 
     mutate(time = rep(c("time_1","time_2"),11)) %>% 
     pivot_wider(names_from = time, values_from = age) %>% 
-    mutate(diff = time_2 - time_1) %$%
-    describe(diff, fast = T) %>% 
+    mutate(delai = time_2 - time_1) 
+
+tab %>% flextable() %>%
+    set_table_properties(width=1,layout="autofit") %>% 
+  set_caption("Délai entre 1ère et 2ème intervention")
+
+tab %$% describe(delai, fast = T) %>% 
     select(-vars,-se) %>% tibble() %>% 
     #mutate(across(mean:range, function(x) convert_time(x, from = "months", to = c("years","months","days"))))
     flextable() %>%
-    set_table_properties(width=1,layout="autofit")
+    set_table_properties(width=1,layout="autofit") %>% 
+  set_caption("Délai entre 1ère et 2ème intervention")
 
 ```
 
@@ -571,14 +591,71 @@ save_editable_plot(g3,"Boxplot age vs compliance ODF", "../graphs")
 
 ```
 
-
-
 ## Suites
 ```{r suites}
 proc_freq(etude, "complications") %>% 
     set_table_properties(width = 1, layout = "autofit") %>% 
     set_caption(caption = "Suites compliquées oui/non")
 ```
+
+## Agenesie dentaire
+```{r piechart_agenesie_dentaire}
+# Agenesie dentaire
+data <- data.frame(
+    group=c("Oui","Non"),
+    value=c(84,67)
+)
+
+data <- data %>% 
+    arrange(desc(group)) %>%
+    mutate(prop = value / sum(data$value) *100) %>%
+    mutate(ypos = cumsum(prop)-prop/10)
+
+# Basic piechart
+g = ggplot(data, aes(x="", y=value, fill=group)) +
+    geom_bar(stat="identity", width=1, color = "white") +
+    coord_polar("y", start=0)+
+    theme_void()+
+    labs(fill="",
+         title = "Agenesie dentaire")+
+    theme(title = element_text(face = "bold")) +
+    geom_text(aes(y = ypos, label = paste0("N=",value,"\n",round(prop, 1), "%")), color = "white", size=6)
+
+g
+
+save_editable_plot(g,"Agenesie dentaire - piechart", "../graphs")
+```
+
+## Fistule bucconasale
+```{r piechart_fistule_bucconasale}
+# Fistule bucconasale
+data <- data.frame(
+    group=c("Oui","Non"),
+    value=c(21,130)
+)
+
+data <- data %>% 
+    arrange(desc(group)) %>%
+    mutate(prop = value / sum(data$value) *100) %>%
+    mutate(ypos = cumsum(prop)-prop/10)
+
+# Basic piechart
+g = ggplot(data, aes(x="", y=value, fill=group)) +
+    geom_bar(stat="identity", width=1, color = "white") +
+    coord_polar("y", start=0)+
+    theme_void()+
+    labs(fill="",
+         title = "Fistule bucco-nasale")+
+    theme(title = element_text(face = "bold")) +
+    geom_text(aes(y = ypos, label = paste0("N=",value,"\n",round(prop, 1), "%")), color = "white", size=6)
+
+g
+
+save_editable_plot(g,"Fistule bucco-nasale - piechart", "../graphs")
+```
+
+
+
 
 # Learning curve{.tabset}
 ## Graphe
@@ -842,7 +919,7 @@ bland_altman_plot <- ggplot() +
 
 print(bland_altman_plot)
 
-save_editable_plot(bland_altman_plot, "Pilot study - Cleft volume measurements: Bland-Altman Plot", "../graphs")
+save_editable_plot(bland_altman_plot, "Pilot study - Cleft volume measurements - Bland-Altman Plot", "../graphs")
 
 ```
 
@@ -864,7 +941,7 @@ bland_altman_plot <- ggplot() +
 
 print(bland_altman_plot)
 
-save_editable_plot(bland_altman_plot, "Pilot study - Graft volume measurements: Bland-Altman Plot", "../graphs")
+save_editable_plot(bland_altman_plot, "Pilot study - Graft volume measurements - Bland-Altman Plot", "../graphs")
 ```
 
 ## % comblement technique standard vs etude preliminaire
