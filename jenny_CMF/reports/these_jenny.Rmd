@@ -3,7 +3,6 @@ title: "Thèse Jenny CMF"
 author: "Francesco Monti"
 date: "2023-07-25 12:26:12"
 output:
-    officedown::rdocx_document: default
     bookdown::html_document2: 
         toc:         yes        # Table of contents (toc): yes no
         toc_float:   yes        # yes no
@@ -13,6 +12,7 @@ output:
         code_folding:    "hide"     # none show hide
         code_download:   yes        # yes no
         fig_caption: yes        # yes no
+    officedown::rdocx_document: default
     word_document: default
 subtitle: Revue des pratiques gingivopériostoplastie
 ---
@@ -92,146 +92,55 @@ set_flextable_defaults(
 proc_freq(epi, "sexe") %>% 
     set_table_properties(width=1,layout="autofit")
     
-
-# table_prop(epi$sexe) %>% 
-#   `colnames<-`(c("Gender","n","%")) %>% 
-#   flextable()
-  # kable(caption = "Gender", col.names = c("Gender","n","%")) %>% 
-  # kable_paper() %>% 
-  # kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
 ## Fentes
 ```{r fentes}
-##### Table 1 ------------
-# proc_freq(epi,"complete","cote", 
-#           include.column_percent = F, 
-#           include.row_percent = F) %>%
-#     set_table_properties(width=1, layout="autofit")
-
-
+# Characteristiques fentes par sexe
 df = tab(epi,sexe,cote,complete, round = 4) %>% 
     split(.$sexe) %>% 
-    lapply(arrange,sexe,complete,desc(N),cote) %>%
+    lapply(arrange,complete,desc(cote)) %>% 
     adorn_totals() %>% 
     do.call(rbind,.) %>% select(-cum_prop) %>% 
-       `colnames<-`(c("Sexe","Coté","Complète", "N", "%")) %>% 
+       `colnames<-`(c("Sexe","Uni/bilaterale","FLA/FLAP", "N", "%")) %>% 
     mutate(`%` = `%`*100,
-           Coté = coalesce(Coté,Sexe),
-           Sexe = ifelse(Sexe == "Total", NA, Sexe)) 
+           #`Uni/bilaterale` = coalesce(`Uni/bilaterale`,Sexe),
+           Sexe = ifelse(Sexe == "Total", NA, Sexe),
+           `FLA/FLAP` = case_when(`FLA/FLAP` == 0 ~ "FLA", 
+                              `FLA/FLAP` == 1 ~ "FLAP"),
+           `Uni/bilaterale` = str_to_title(`Uni/bilaterale`),
+           `Uni/bilaterale` = case_when(`Uni/bilaterale` == "Gauche" ~ "Unilat. gauche",
+                                        `Uni/bilaterale` == "Droite" ~ "Unilat. droite",
+                                        TRUE ~ as.character(`Uni/bilaterale`))) 
 
 df[c(7,14),c(1,2,3)] = NA
 
 df %>% as_grouped_data(groups = c("Sexe")) %>% 
     slice(-8,-17) %>% 
     flextable() %>% 
-    set_table_properties(layout="autofit",width=1)
+    set_table_properties(layout="autofit",width=1) %>% 
+    set_caption("Characteristiques fentes par sexe")
 
 
-# Characteristiques fentes
-tab(epi,sexe,cote,complete, round = 4) %>%
+# Characteristiques fentes 
+tab(epi,cote,complete, round = 4) %>% 
+  arrange(complete,desc(cote)) %>% 
+  adorn_totals() %>%
   select(-cum_prop) %>% 
-  `colnames<-`(c("Sexe","Coté","Complète", "N", "%")) %>%
-  mutate(Complète = case_when(Complète == 0 ~ "incomplète", 
-                              Complète == 1 ~ "complète"),
-         `%` = `%`*100) %>% 
-  pivot_wider(names_from = Sexe, values_from = c(N,"%")) %>% 
+  `colnames<-`(c("Uni/bilaterale","FLA/FLAP", "N", "%")) %>% 
+  mutate(`%` = `%`*100,
+         #`Uni/bilaterale` = coalesce(`Uni/bilaterale`,Sexe),
+         `FLA/FLAP` = case_when(`FLA/FLAP` == 0 ~ "FLA", 
+                                `FLA/FLAP` == 1 ~ "FLAP"),
+         `Uni/bilaterale` = str_to_title(`Uni/bilaterale`),
+         `Uni/bilaterale` = case_when(`Uni/bilaterale` == "Gauche" ~ "Unilat. gauche",
+                                      `Uni/bilaterale` == "Droite" ~ "Unilat. droite",
+                                      TRUE ~ as.character(`Uni/bilaterale`))) %>% 
   flextable() %>% 
   set_table_properties(layout="autofit",width=1) %>% 
   set_caption("Characteristiques fentes")
 
 
-
-# df = rbind(table_prop(epi$complete),
-#       table_prop(epi$cote)) %>% 
-#   mutate(var = c("No","Yes","Both","Right","Left","NA"),
-#          group = c(rep("Complete", 2), rep("Affected side", 4))) %>% 
-#   relocate(group, .before = dplyr::first(colnames(.))) %>% 
-#   as_grouped_data(groups = c("group"))  
-#   
-# flextable(df) %>% 
-#   set_header_labels(group = "Feature", var = "", n = "N", prop = "%") %>% 
-#   bold(j = 1, part = "body") %>%
-#   bold(part = "header") %>%
-#   set_table_properties(width = .75, layout = "autofit")
-  # kable(col.names = c("Feature","n","%"), caption = "Cleft characteristics") %>%
-  # kable_paper() %>% 
-  # pack_rows(start_row = 1,end_row = 2,"Complete") %>% 
-  # pack_rows(start_row = 3,end_row = 6,"Affected side") %>% 
-  # kable_styling(bootstrap_options = c("striped", "hover"))
-
-# Table2 prep -----------
-# Table 2 ------
-# tab(epi,sexe,complete, cote, round = 4) %>% 
-#     arrange(sexe,desc(N)) %>% 
-#     mutate(prop = paste(prop*100,"%"),
-#            cum_prop = paste(cum_prop*100,"%")) %>% 
-#     as_grouped_data(group="sexe") %>% 
-#     as_flextable() %>% 
-#     set_table_properties(width = 1, layout = "autofit")
-
-
-# tab = table(epi$complete,epi$cote, deparse.level = 2, useNA = "ifany") %>% 
-#   data.frame() %>%
-#   rename(complete = epi.complete, `affected side` = epi.cote, n = Freq) %>% 
-#   mutate(complete = rep(c("No","Yes"),4),
-#          "%" = n*100/sum(n),
-#          `affected side` = case_when(`affected side` == "bilaterale" ~ "Both",
-#                                      `affected side` == "droite" ~ "Right",
-#                                      `affected side` == "gauche" ~ "Left"),
-#          "Gender"=""
-#          ) %>% 
-#   `colnames<-`(str_to_title(colnames(.))) %>% adorn_totals()
-# 
-# tabf = table("gender"= epi$sexe[epi$sexe=="F"], 
-#              epi$complete[epi$sexe=="F"],
-#              epi$cote[epi$sexe=="F"], deparse.level = 2, useNA = "ifany") %>% 
-#   data.frame() %>%
-#   `colnames<-`(c("gender", "complete", "affected side", "n")) %>% 
-#   mutate(complete = case_when(complete == 0 ~ "No",
-#                               complete == 1 ~ "Yes"),
-#          "%" = n*100/sum(n),
-#          `affected side` = case_when(`affected side` == "bilaterale" ~ "Both",
-#                                      `affected side` == "droite" ~ "Right",
-#                                      `affected side` == "gauche" ~ "Left")
-#     ) %>% 
-#     `colnames<-`(str_to_title(colnames(.)))  %>% 
-#     arrange(desc(N)) %>% adorn_totals
-# 
-# tabm = table("gender"= epi$sexe[epi$sexe=="M"], 
-#              epi$complete[epi$sexe=="M"],
-#              epi$cote[epi$sexe=="M"], deparse.level = 2, useNA = "ifany") %>% 
-#   data.frame() %>%
-#   `colnames<-`(c("gender", "complete", "affected side", "n")) %>% 
-#   mutate(complete = case_when(complete == 0 ~ "No",
-#                               complete == 1 ~ "Yes"),
-#          "%" = n*100/sum(n),
-#          `affected side` = case_when(`affected side` == "bilaterale" ~ "Both",
-#                                      `affected side` == "droite" ~ "Right",
-#                                      `affected side` == "gauche" ~ "Left")
-#     ) %>% 
-#     `colnames<-`(str_to_title(colnames(.)))  %>% 
-#     arrange(desc(N)) %>% adorn_totals
-# 
-# # Table 2 ------
-# rbind(tab,tabf,tabm) %>%
-#   relocate(Gender, .before = "Complete") %>% 
-#   as_grouped_data(groups = "Gender") %>%
-#   flextable() %>% 
-#   bold(j = 1, part = "body") %>%
-#   bold(part = "header") %>%
-#   flextable::theme_apa() %>%
-#   set_table_properties(width = .75, layout = "autofit")
-
-
- # rbind(tab,tabf,tabm) %>% select(-Gender) %>% 
- #  kable(row.names = F, caption = "Clefts characteristics cross-table") %>%
- #  kable_paper() %>% 
- #  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive")) %>% 
- #  add_footnote(c("NA = Not Available")) %>% 
- #  pack_rows("Overall",1,9) %>% 
- #  pack_rows("Females",10,18) %>% 
- #  pack_rows("Males",19,26)
 ```
 
 # Etude {.tabset}
@@ -244,14 +153,6 @@ tab(etude, cote_opere, round = 5) %>%
     flextable() %>% 
     set_table_properties(layout="autofit", width = 1) 
 
-
-# table(etude$cote_opere) %>%
-#     as.data.frame() %>%
-#     mutate("%"=Freq*100/sum(Freq,na.rm=T)) %>%
-#     adorn_totals() %>% 
-#     kable(col.names = c("Coté operé","n","%")) %>% 
-#     kable_paper() %>% 
-#     kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
 ## Prelevement iliaque
@@ -262,13 +163,6 @@ set_header_labels(prelevement_iliaque= "Coté prélèvement iliaque",
                   Percent = "Percent") %>% 
     set_table_properties(layout = "autofit", width = 1)
 
-# table(etude$prelevement_iliaque) %>% 
-#     as.data.frame() %>%
-#     mutate("%"=Freq*100/sum(Freq,na.rm=T)) %>% 
-#     adorn_totals() %>% 
-#     kable(col.names = c("Prelevement iliaque","n","%")) %>% 
-#   kable_paper() %>% 
-#     kable_styling(bootstrap_options = c("striped", "hover"))
 ```
 
 ## Age patients
