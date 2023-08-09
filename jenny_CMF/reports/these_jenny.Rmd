@@ -3,6 +3,8 @@ title: "Thèse Jenny CMF"
 author: "Francesco Monti"
 date: "2023-07-25 12:26:12"
 output:
+    word_document: default
+    officedown::rdocx_document: default
     bookdown::html_document2: 
         toc:         yes        # Table of contents (toc): yes no
         toc_float:   yes        # yes no
@@ -12,26 +14,23 @@ output:
         code_folding:    "hide"     # none show hide
         code_download:   yes        # yes no
         fig_caption: yes        # yes no
-    officedown::rdocx_document: default
-    word_document: default
 subtitle: Revue des pratiques gingivopériostoplastie
 ---
 
-
 ```{r libraries, echo = F, include=F}
-library(tidyverse)     # The main "tidyverse" packages.
-library(conflicted)    # Get a warning/error if several functions with the same name exist.
+library(tidyverse) # The main "tidyverse" packages.
+library(conflicted) # Get a warning/error if several functions with the same name exist.
 conflicts_prefer(dplyr::filter)
-library(magrittr)      # Operator %>% and additional pipe-friendly functions.
+library(magrittr) # Operator %>% and additional pipe-friendly functions.
 library(pander)
 library(Kendall)
 library(psych)
 library(lmtest)
-library(knitr)         # Function `kable()` to convert data frames into tables for reports.
-#knitr::opts_knit$set(root.dir='..')
+library(knitr) # Function `kable()` to convert data frames into tables for reports.
+# knitr::opts_knit$set(root.dir='..')
 
-library(kableExtra)        # Enhancing kable() possibilities
-library(DT)            # Interactive tables for HTML documents (DataTables).
+library(kableExtra) # Enhancing kable() possibilities
+library(DT) # Interactive tables for HTML documents (DataTables).
 library(fmckage)
 library(janitor)
 library(ggthemes)
@@ -48,531 +47,582 @@ library(officedown)
 ```{r options, echo = F}
 # Chunk options
 knitr::opts_chunk$set(
-  echo       = F,    # Should blocks with program code be shown in knitted documents?
-  eval       = TRUE,    # Should program code be evaluated?
-  fig.height = 4,       # Default height for plots.
-  fig.width  = 6.66,       # Default width for plots.
-  fig.align  = "center", # Default alignment for plots in knitted documents.
+  echo = F, # Should blocks with program code be shown in knitted documents?
+  eval = TRUE, # Should program code be evaluated?
+  fig.height = 4, # Default height for plots.
+  fig.width = 6.66, # Default width for plots.
+  fig.align = "center", # Default alignment for plots in knitted documents.
   fig.fullwidth = T,
   warning = F,
   message = F
 )
 
 # Options to format numbers
-options(        # For more detais see ?options
-    digits = 4  # Number of significant digits to print numbers.
+options( # For more detais see ?options
+  digits = 4 # Number of significant digits to print numbers.
 )
 
 # Set ggplot options
-theme = theme_clean()+
-    theme(  # You can choose a pre-defined theme or customize it further
+theme <- theme_clean() +
+  theme( # You can choose a pre-defined theme or customize it further
     text = element_text(color = "black", size = 12),
     axis.title = element_text(face = "bold"),
-    title = element_text(face = "bold"))
+    title = element_text(face = "bold")
+  )
 theme_set(theme)
 
 # Flextable defaults
 set_flextable_defaults(
-    text.align = "center",
+  text.align = "center",
   font.family = "Helvetica",
   font.size = 11,
   padding = 2,
-  #border.color = "#CCCCCC",
+  # border.color = "#CCCCCC",
   line_spacing = 1,
   digits = 4,
-  pct_digits = 2, 
+  pct_digits = 2,
   na_str = "", theme_fun = "theme_zebra"
-  )
-
+)
 ```
 
 # Epidemio {.tabset}
 ## Sexe
 ```{r sexe}
-proc_freq(epi, "sexe") %>% 
-    set_table_properties(width=1,layout="autofit")
-    
+proc_freq(epi, "sexe") %>%
+  set_table_properties(width = 1, layout = "autofit")
 ```
 
 ## Fentes
 ```{r fentes}
 # Characteristiques fentes par sexe
-df = tab(epi,sexe,cote,complete, round = 4) %>% 
-    split(.$sexe) %>% 
-    lapply(arrange,complete,desc(cote)) %>% 
-    adorn_totals() %>% 
-    do.call(rbind,.) %>% select(-cum_prop) %>% 
-       `colnames<-`(c("Sexe","Uni/bilaterale","FLA/FLAP", "N", "%")) %>% 
-    mutate(`%` = `%`*100,
-           #`Uni/bilaterale` = coalesce(`Uni/bilaterale`,Sexe),
-           Sexe = ifelse(Sexe == "Total", NA, Sexe),
-           `FLA/FLAP` = case_when(`FLA/FLAP` == 0 ~ "FLA", 
-                              `FLA/FLAP` == 1 ~ "FLAP"),
-           `Uni/bilaterale` = str_to_title(`Uni/bilaterale`),
-           `Uni/bilaterale` = case_when(`Uni/bilaterale` == "Gauche" ~ "Unilat. gauche",
-                                        `Uni/bilaterale` == "Droite" ~ "Unilat. droite",
-                                        TRUE ~ as.character(`Uni/bilaterale`))) 
-
-df[c(7,14),c(1,2,3)] = NA
-
-df %>% as_grouped_data(groups = c("Sexe")) %>% 
-    slice(-8,-17) %>% 
-    flextable() %>% 
-    set_table_properties(layout="autofit",width=1) %>% 
-    set_caption("Characteristiques fentes par sexe")
-
-
-# Characteristiques fentes 
-tab(epi,cote,complete, round = 4) %>% 
-  arrange(complete,desc(cote)) %>% 
+df <- tab(epi, sexe, cote, complete, round = 4) %>%
+  split(.$sexe) %>%
+  lapply(arrange, complete, desc(cote)) %>%
   adorn_totals() %>%
-  select(-cum_prop) %>% 
-  `colnames<-`(c("Uni/bilaterale","FLA/FLAP", "N", "%")) %>% 
-  mutate(`%` = `%`*100,
-         #`Uni/bilaterale` = coalesce(`Uni/bilaterale`,Sexe),
-         `FLA/FLAP` = case_when(`FLA/FLAP` == 0 ~ "FLA", 
-                                `FLA/FLAP` == 1 ~ "FLAP"),
-         `Uni/bilaterale` = str_to_title(`Uni/bilaterale`),
-         `Uni/bilaterale` = case_when(`Uni/bilaterale` == "Gauche" ~ "Unilat. gauche",
-                                      `Uni/bilaterale` == "Droite" ~ "Unilat. droite",
-                                      TRUE ~ as.character(`Uni/bilaterale`))) %>% 
-  flextable() %>% 
-  set_table_properties(layout="autofit",width=1) %>% 
+  do.call(rbind, .) %>%
+  select(-cum_prop) %>%
+  `colnames<-`(c("Sexe", "Uni/bilaterale", "FLA/FLAP", "N", "%")) %>%
+  mutate(
+    `%` = `%` * 100,
+    # `Uni/bilaterale` = coalesce(`Uni/bilaterale`,Sexe),
+    Sexe = ifelse(Sexe == "Total", NA, Sexe),
+    `FLA/FLAP` = case_when(
+      `FLA/FLAP` == 0 ~ "FLA",
+      `FLA/FLAP` == 1 ~ "FLAP"
+    ),
+    `Uni/bilaterale` = str_to_title(`Uni/bilaterale`),
+    `Uni/bilaterale` = case_when(
+      `Uni/bilaterale` == "Gauche" ~ "Unilat. gauche",
+      `Uni/bilaterale` == "Droite" ~ "Unilat. droite",
+      TRUE ~ as.character(`Uni/bilaterale`)
+    )
+  )
+
+df[c(7, 14), c(1, 2, 3)] <- NA
+
+df %>%
+  as_grouped_data(groups = c("Sexe")) %>%
+  slice(-8, -17) %>%
+  flextable() %>%
+  set_table_properties(layout = "autofit", width = 1) %>%
+  set_caption("Characteristiques fentes par sexe")
+
+
+# Characteristiques fentes
+tab(epi, cote, complete, round = 4) %>%
+  arrange(complete, desc(cote)) %>%
+  adorn_totals() %>%
+  select(-cum_prop) %>%
+  `colnames<-`(c("Uni/bilaterale", "FLA/FLAP", "N", "%")) %>%
+  mutate(
+    `%` = `%` * 100,
+    # `Uni/bilaterale` = coalesce(`Uni/bilaterale`,Sexe),
+    `FLA/FLAP` = case_when(
+      `FLA/FLAP` == 0 ~ "FLA",
+      `FLA/FLAP` == 1 ~ "FLAP"
+    ),
+    `Uni/bilaterale` = str_to_title(`Uni/bilaterale`),
+    `Uni/bilaterale` = case_when(
+      `Uni/bilaterale` == "Gauche" ~ "Unilat. gauche",
+      `Uni/bilaterale` == "Droite" ~ "Unilat. droite",
+      TRUE ~ as.character(`Uni/bilaterale`)
+    )
+  ) %>%
+  flextable() %>%
+  set_table_properties(layout = "autofit", width = 1) %>%
   set_caption("Characteristiques fentes")
-
-
 ```
 
 # Etude {.tabset}
 ## Fentes operées
 ```{r fentes operées}
-tab(etude, cote_opere, round = 5) %>% 
-    mutate("%"=prop*100) %>%
-    adorn_totals() %>% 
-    select(-prop,-cum_prop) %>% 
-    flextable() %>% 
-    set_table_properties(layout="autofit", width = 1) 
-
+tab(etude, cote_opere, round = 5) %>%
+  mutate("%" = prop * 100) %>%
+  adorn_totals() %>%
+  select(-prop, -cum_prop) %>%
+  flextable() %>%
+  set_table_properties(layout = "autofit", width = 1)
 ```
 
 ## Prelevement iliaque
 ```{r prelevement iliaque}
-proc_freq(etude, "prelevement_iliaque") %>% 
-set_header_labels(prelevement_iliaque= "Coté prélèvement iliaque", 
-                  Count="N", 
-                  Percent = "Percent") %>% 
-    set_table_properties(layout = "autofit", width = 1)
-
+proc_freq(etude, "prelevement_iliaque") %>%
+  set_header_labels(
+    prelevement_iliaque = "Coté prélèvement iliaque",
+    Count = "N",
+    Percent = "Percent"
+  ) %>%
+  set_table_properties(layout = "autofit", width = 1)
 ```
 
 ## Age patients
 Pour les 11 patients qui ont éTé operés en 2 étapes je ferais la moyenne de leurs ages. Mais avant de le faire je voudrais regarder pour curiosité la distribution des distances temporelles entre **intervention 1** et **intervention 2**.
 ```{r }
 # patients which underwent surgery on 2 different occasions
-index = etude %>% 
-    group_by(patid) %>% 
-    summarise(n=n()) %>% 
-    filter(n==2) %>%
-    pull(patid)
+index <- etude %>%
+  group_by(patid) %>%
+  summarise(n = n()) %>%
+  filter(n == 2) %>%
+  pull(patid)
 
-tab = etude %>% 
-    filter(patid %in% index) %>%
-    select(patid,age) %>% 
-    mutate(time = rep(c("time_1","time_2"),11)) %>% 
-    pivot_wider(names_from = time, values_from = age) %>% 
-    mutate(delai = time_2 - time_1) 
+tab <- etude %>%
+  filter(patid %in% index) %>%
+  select(patid, age) %>%
+  mutate(time = rep(c("time_1", "time_2"), 11)) %>%
+  pivot_wider(names_from = time, values_from = age) %>%
+  mutate(delai = time_2 - time_1)
 
-tab %>% flextable() %>%
-    set_table_properties(width=1,layout="autofit") %>% 
+tab %>%
+  flextable() %>%
+  set_table_properties(width = 1, layout = "autofit") %>%
   set_caption("Délai entre 1ère et 2ème intervention")
 
-tab %$% describe(delai, fast = T) %>% 
-    select(-vars,-se) %>% tibble() %>% 
-    #mutate(across(mean:range, function(x) convert_time(x, from = "months", to = c("years","months","days"))))
-    flextable() %>%
-    set_table_properties(width=1,layout="autofit") %>% 
+tab %$% describe(delai, fast = T) %>%
+  select(-vars, -se) %>%
+  tibble() %>%
+  # mutate(across(mean:range, function(x) convert_time(x, from = "months", to = c("years","months","days"))))
+  flextable() %>%
+  set_table_properties(width = 1, layout = "autofit") %>%
   set_caption("Délai entre 1ère et 2ème intervention")
-
 ```
 
 ### Pyramid des ages
 ```{r pyramid}
-g = etude %>% group_by(patid,sexe) %>% 
-    summarise(age = mean(age/12)) %>% 
-    mutate(age = cut(age, breaks = seq(0, 20, 1), include.lowest = TRUE)) %>% 
-    ungroup() %>% 
-    select(-patid) %>% 
-    count(age,sexe) %>% 
-    ggplot(aes(x = age, y = ifelse(sexe == "F", -n, n), fill = sexe)) +
-    geom_bar(stat = "identity", position = "identity") +
-    scale_y_continuous(labels = abs, breaks = seq(-20,20,1)) +
-    labs(title = "Pyramide des âges", x = "Age (années)", y = "N", fill = "Sexe") +
-    theme_minimal() +
-    coord_flip()
+g <- etude %>%
+  group_by(patid, sexe) %>%
+  summarise(age = mean(age / 12)) %>%
+  mutate(age = cut(age, breaks = seq(0, 20, 1), include.lowest = TRUE)) %>%
+  ungroup() %>%
+  select(-patid) %>%
+  count(age, sexe) %>%
+  ggplot(aes(x = age, y = ifelse(sexe == "F", -n, n), fill = sexe)) +
+  geom_bar(stat = "identity", position = "identity") +
+  scale_y_continuous(labels = abs, breaks = seq(-20, 20, 1)) +
+  labs(title = "Pyramide des âges", x = "Age (années)", y = "N", fill = "Sexe") +
+  theme_minimal() +
+  coord_flip()
 
 # Printing plot
 g
 
-save_editable_plot(g,"pyramid des ages", "../graphs/")
+save_editable_plot(g, "pyramid des ages", "../graphs/")
 ```
 
 ### Mesures de dispersion
 ```{r dispersion measures}
 # Dispersion mesures
-tab = etude %>% 
-    group_by(patid) %>% 
-    summarise(age=mean(age)) %$% 
-    describe(age,fast = T) %>%
-    round(2) %>% 
-    as.data.frame %>%
-    select(-1,-8)  
+tab <- etude %>%
+  group_by(patid) %>%
+  summarise(age = mean(age)) %$%
+  describe(age, fast = T) %>%
+  round(2) %>%
+  as.data.frame() %>%
+  select(-1, -8)
 
-tab2 = tab %>% 
-  mutate(across(mean:range, function(x) fmckage::convert_time(x,
-                                                  from = "months", 
-                                                  to = c("years","months","days"), 
-                                                  warn_residual = F)))
+tab2 <- tab %>%
+  mutate(across(mean:range, function(x) {
+    fmckage::convert_time(x,
+      from = "months",
+      to = c("years", "months", "days"),
+      warn_residual = F
+    )
+  }))
 
 
-all = tab2 %>% mutate(n="") %$% ifelse(.!="",paste0(tab," (",.,")"),tab) %>% 
-  as.data.frame %>% 
-  `colnames<-`(c("n","Mean","Sd","Min","Max","Range")) %>% 
-  mutate(Gender = "") %>% relocate(Gender,.before = n)
+all <- tab2 %>%
+  mutate(n = "") %$% ifelse(. != "", paste0(tab, " (", ., ")"), tab) %>%
+  as.data.frame() %>%
+  `colnames<-`(c("n", "Mean", "Sd", "Min", "Max", "Range")) %>%
+  mutate(Gender = "") %>%
+  relocate(Gender, .before = n)
 
 # by females
-tab = etude %>% filter(sexe=="F") %>% 
-    group_by(patid) %>% 
-    summarise(age=mean(age)) %$% 
-    describe(age,fast = T) %>%
-    round(2) %>% 
-    as.data.frame %>%
-    select(-1,-8)  
+tab <- etude %>%
+  filter(sexe == "F") %>%
+  group_by(patid) %>%
+  summarise(age = mean(age)) %$%
+  describe(age, fast = T) %>%
+  round(2) %>%
+  as.data.frame() %>%
+  select(-1, -8)
 
-tab2 = tab %>% 
-    mutate(across(mean:range, function(x) fmckage::convert_time(x,
-                                                                from = "months", 
-                                                                to = c("years","months","days"), 
-                                                                warn_residual = F)))
+tab2 <- tab %>%
+  mutate(across(mean:range, function(x) {
+    fmckage::convert_time(x,
+      from = "months",
+      to = c("years", "months", "days"),
+      warn_residual = F
+    )
+  }))
 
 
-f = tab2 %>% mutate(n="") %$% ifelse(.!="",paste0(tab," (",.,")"),tab) %>% 
-    as.data.frame %>% 
-    `colnames<-`(c("n","Mean","Sd","Min","Max","Range")) %>% 
-    mutate(Gender = "F") %>% relocate(Gender,.before = n)
+f <- tab2 %>%
+  mutate(n = "") %$% ifelse(. != "", paste0(tab, " (", ., ")"), tab) %>%
+  as.data.frame() %>%
+  `colnames<-`(c("n", "Mean", "Sd", "Min", "Max", "Range")) %>%
+  mutate(Gender = "F") %>%
+  relocate(Gender, .before = n)
 
 # By males
-tab = etude %>% filter(sexe=="M") %>% 
-    group_by(patid) %>% 
-    summarise(age=mean(age)) %$% 
-    describe(age,fast = T) %>%
-    round(2) %>% 
-    as.data.frame %>%
-    select(-1,-8)  
+tab <- etude %>%
+  filter(sexe == "M") %>%
+  group_by(patid) %>%
+  summarise(age = mean(age)) %$%
+  describe(age, fast = T) %>%
+  round(2) %>%
+  as.data.frame() %>%
+  select(-1, -8)
 
-tab2 = tab %>% 
-    mutate(across(mean:range, function(x) fmckage::convert_time(x,
-                                                                from = "months", 
-                                                                to = c("years","months","days"), 
-                                                                warn_residual = F)))
+tab2 <- tab %>%
+  mutate(across(mean:range, function(x) {
+    fmckage::convert_time(x,
+      from = "months",
+      to = c("years", "months", "days"),
+      warn_residual = F
+    )
+  }))
 
 
-m = tab2 %>% mutate(n="") %$% ifelse(.!="",paste0(tab," (",.,")"),tab) %>% 
-    as.data.frame %>% 
-    `colnames<-`(c("n","Mean","Sd","Min","Max","Range")) %>% 
-    mutate(Gender = "M") %>% relocate(Gender,.before = n)
+m <- tab2 %>%
+  mutate(n = "") %$% ifelse(. != "", paste0(tab, " (", ., ")"), tab) %>%
+  as.data.frame() %>%
+  `colnames<-`(c("n", "Mean", "Sd", "Min", "Max", "Range")) %>%
+  mutate(Gender = "M") %>%
+  relocate(Gender, .before = n)
 
 
 # Dispersion mesures by sexe
-# tab = etude %>% filter(sexe=="F") %>% 
-#     group_by(patid) %>% 
-#     summarise(age=mean(age)) %$% describe(age,fast = T) %>% 
-#     select(-vars,-se) %>% 
+# tab = etude %>% filter(sexe=="F") %>%
+#     group_by(patid) %>%
+#     summarise(age=mean(age)) %$% describe(age,fast = T) %>%
+#     select(-vars,-se) %>%
 #     mutate(across(mean:range, function(x) round(x, 2)))
-#     
-# tab1 = etude %>% filter(sexe=="M") %>% 
-#     group_by(patid) %>% 
-#     summarise(age=mean(age)) %$% describe(age,fast = T) %>% 
-#     select(-vars,-se) %>% 
+#
+# tab1 = etude %>% filter(sexe=="M") %>%
+#     group_by(patid) %>%
+#     summarise(age=mean(age)) %$% describe(age,fast = T) %>%
+#     select(-vars,-se) %>%
 #     mutate(across(mean:range, function(x) round(x, 2)))
-# 
-# tab2 = rbind(tab,tab1) %>% tibble %>% 
+#
+# tab2 = rbind(tab,tab1) %>% tibble %>%
 #     mutate(across(mean:range ,function(x) convert_time(x,from = "months", to = c("years","months","days"))))
-# 
-# 
+#
+#
 # by_sex <- tab %>%
 #     mutate(mean = paste0(mean, " (", tab2$mean, ")"),
 #            sd = paste0(sd, " (", tab2$sd, ")"),
 #            min = paste0(min, " (", tab2$min, ")"),
 #            max = paste0(max, " (", tab2$max, ")"),
-#            range = paste0(range, " (", tab2$range, ")")) %>% 
+#            range = paste0(range, " (", tab2$range, ")")) %>%
 #   rename(Gender=sexe) %>% `colnames<-`(c("Gender","n","Mean","Sd","Min","Max","Range"))
 
 
 # Table
-rbind(all, f, m) %>% 
-    flextable %>%
-    set_table_properties(width=1, layout="autofit")
-# 
+rbind(all, f, m) %>%
+  flextable() %>%
+  set_table_properties(width = 1, layout = "autofit")
+#
 #     kable(row.names = F,
-#           caption = "Age - Dispersion measures (months)") %>% 
-#     kable_paper() %>% 
+#           caption = "Age - Dispersion measures (months)") %>%
+#     kable_paper() %>%
 #     kable_styling(bootstrap_options = c("striped", "hover"))
-
-
 ```
 
 ## Traitement ODF
 ```{r ttt_odf}
 # 1) Combien de patients ont eu un traitement ODF pré chir ?
-proc_freq(etude,"odf_prechir") %>% 
-    set_table_properties(width=1,layout = "autofit")
+proc_freq(etude, "odf_prechir") %>%
+  set_table_properties(width = 1, layout = "autofit")
 
-# etude %>% 
+# etude %>%
 #   distinct(patid, odf_prechir) %$%
-#   table_prop(odf_prechir)  %>% 
-#   kable(col.names = c("ODF prechir","n","%")) %>% 
+#   table_prop(odf_prechir)  %>%
+#   kable(col.names = c("ODF prechir","n","%")) %>%
 #   kable_paper() %>%
 #   add_footnote(c("ODF prechir 1/0 = oui/non",
 #                  "NA = not available"))
 
 
-# 2) temps moyen d’une prise en charge ODF avant la chirurgie 
-tab = describe(etude$odf_prechir_months, fast = T) %>% round(2) %>% 
-  select(-1,-8) %>% 
-  as.data.frame() 
+# 2) temps moyen d’une prise en charge ODF avant la chirurgie
+tab <- describe(etude$odf_prechir_months, fast = T) %>%
+  round(2) %>%
+  select(-1, -8) %>%
+  as.data.frame()
 
-tab2 = etude %>%
+tab2 <- etude %>%
   group_by(sexe) %>%
-  summarise(odf_prechir_months = describe(odf_prechir_months, fast = T)) %>% 
-  unnest(cols = odf_prechir_months) %>% 
-  mutate(across(mean:range, round, 2)) %>% 
-  select(-2,-9) %>%
+  summarise(odf_prechir_months = describe(odf_prechir_months, fast = T)) %>%
+  unnest(cols = odf_prechir_months) %>%
+  mutate(across(mean:range, round, 2)) %>%
+  select(-2, -9) %>%
   column_to_rownames("sexe")
-  
-tab3 = rbind(tab,tab2) %>% 
-  mutate(across(mean:range, function(x) convert_time(x, from = "months", to = c("years","months","days"))))
+
+tab3 <- rbind(tab, tab2) %>%
+  mutate(across(mean:range, function(x) convert_time(x, from = "months", to = c("years", "months", "days"))))
 
 
-    # joining tables
-rbind(tab,tab2,tab3) %>% 
-    tibble() %>% 
-    mutate(group = rep(c("Tous","F","M"),2),
-           format = c(rep("Months",3),rep("YMD",3))) %>% 
-    relocate(group, .before = n) %>% 
-    relocate(format,.before = group) %>% 
-    as_grouped_data(groups = "format") %>% 
-    flextable() %>% 
-    set_caption(caption = "Durée traitement ODF prechir") %>% 
-    set_header_labels(values = c(format = "")) %>% 
-    set_table_properties(width=1, layout="autofit")
-    
-# rbind(tab,tab2,tab3) %>%     
-#   `row.names<-`(c("Tous","F","M","tous","f","m")) %>% 
-#     kable(col.names = c("n", "moyenne", "écart type","min","max","range"), 
+# joining tables
+rbind(tab, tab2, tab3) %>%
+  tibble() %>%
+  mutate(
+    group = rep(c("Tous", "F", "M"), 2),
+    format = c(rep("Months", 3), rep("YMD", 3))
+  ) %>%
+  relocate(group, .before = n) %>%
+  relocate(format, .before = group) %>%
+  as_grouped_data(groups = "format") %>%
+  flextable() %>%
+  set_caption(caption = "Durée traitement ODF prechir") %>%
+  set_header_labels(values = c(format = "")) %>%
+  set_table_properties(width = 1, layout = "autofit")
+
+# rbind(tab,tab2,tab3) %>%
+#   `row.names<-`(c("Tous","F","M","tous","f","m")) %>%
+#     kable(col.names = c("n", "moyenne", "écart type","min","max","range"),
 #           row.names = T,
-#           caption = "Durée prise en charge ODF pre chir - Mesures de dispersion", 
-#           digits = 2) %>% 
-#   kable_paper() %>% 
-#   pack_rows("Mois",1,3) %>% 
+#           caption = "Durée prise en charge ODF pre chir - Mesures de dispersion",
+#           digits = 2) %>%
+#   kable_paper() %>%
+#   pack_rows("Mois",1,3) %>%
 #   pack_rows("Years - months - days",4,6)
-
 ```
-
 
 ```{r duree_odf_vs_compliance}
-etude %>% 
-    filter(!is.na(compliance_ttt)) %>%
-    ggplot()+
-    geom_boxplot(aes(x = compliance_ttt, y = odf_prechir_months, fill = compliance_ttt))+
-    scale_y_continuous(breaks = seq(0,150,10))+
-    labs(fill = "Compliance",
-         title = "Durée ODF prechir selon la compliance au treatement",
-         y = "Durée ttt (en mois)",
-         x = "Compliance")
+etude %>%
+  filter(!is.na(compliance_ttt)) %>%
+  ggplot() +
+  geom_boxplot(aes(x = compliance_ttt, y = odf_prechir_months, fill = compliance_ttt)) +
+  scale_y_continuous(breaks = seq(0, 150, 10)) +
+  labs(
+    fill = "Compliance",
+    title = "Durée ODF prechir selon la compliance au treatement",
+    y = "Durée ttt (en mois)",
+    x = "Compliance"
+  )
 ```
-
 
 ## Temps hospitalisation
 ```{r duree_hospit}
 # Mesures de dispersion
-t_hospit = describe(etude$duree_sej, fast = T)[-c(1,8)] %>% round(2)
+t_hospit <- describe(etude$duree_sej, fast = T)[-c(1, 8)] %>% round(2)
 
-tab1 = t_hospit %>% 
-    tibble %>% 
-    mutate(across(mean:range, function(x) convert_time(x, from="days", to = c("days","hours"))))
+tab1 <- t_hospit %>%
+  tibble() %>%
+  mutate(across(mean:range, function(x) convert_time(x, from = "days", to = c("days", "hours"))))
 
-tab2 = t_hospit %>%
-    tibble %>% 
-    mutate(across(mean:range, function(x) convert_time(x, from="days", to = c("hours","minutes"))))
+tab2 <- t_hospit %>%
+  tibble() %>%
+  mutate(across(mean:range, function(x) convert_time(x, from = "days", to = c("hours", "minutes"))))
 
-    # Binding
-rbind(as.character(t_hospit),tab1,tab2) %>%  
-    mutate(rownames = c("Days","Days (DHM)","Hours")) %>% 
-    #column_to_rownames(var = "rownames") %>%
-    relocate(rownames,.before = n) %>% 
-    flextable() %>% 
-    set_table_properties(width = 1,layout = "autofit") %>% 
-    set_caption("Temps d'hospitalisation (jours)")
-    # set_header_labels(values = c(rownames = ""))
-    # kable(row.names = T, 
-    #       caption = "Temps d'hispitalisation - mesures de dispersion", 
-    #       col.names = c("n", "moyenne", "écart type","min","max","range")) %>%
-    # kable_paper()
+# Binding
+rbind(as.character(t_hospit), tab1, tab2) %>%
+  mutate(rownames = c("Days", "Days (DHM)", "Hours")) %>%
+  # column_to_rownames(var = "rownames") %>%
+  relocate(rownames, .before = n) %>%
+  flextable() %>%
+  set_table_properties(width = 1, layout = "autofit") %>%
+  set_caption("Temps d'hospitalisation (jours)")
+# set_header_labels(values = c(rownames = ""))
+# kable(row.names = T,
+#       caption = "Temps d'hispitalisation - mesures de dispersion",
+#       col.names = c("n", "moyenne", "écart type","min","max","range")) %>%
+# kable_paper()
 
 # Table durée hospitalisation
-proc_freq(etude, "duree_sej") %>% 
-    set_table_properties(width = 1, layout = "autofit") %>% 
-    set_header_labels(values = c(duree_sej = "durée_sej en jours")) %>% 
-    set_caption("Durée sejour")
+proc_freq(etude, "duree_sej") %>%
+  set_table_properties(width = 1, layout = "autofit") %>%
+  set_header_labels(values = c(duree_sej = "durée_sej en jours")) %>%
+  set_caption("Durée sejour")
 
-g = etude %>% 
-    count(duree_sej) %>% 
-    ggplot()+
-    geom_col(aes(x = duree_sej, y = n))+
-    scale_y_continuous(breaks = seq(0,120,10))+
-    labs(title = "Durée sejour",
-         x = "Jours")
+g <- etude %>%
+  count(duree_sej) %>%
+  ggplot() +
+  geom_col(aes(x = duree_sej, y = n)) +
+  scale_y_continuous(breaks = seq(0, 120, 10)) +
+  labs(
+    title = "Durée sejour",
+    x = "Jours"
+  )
 
 g
 
-save_editable_plot(g,"duree_sej",path = "../graphs/")
-
-
+save_editable_plot(g, "duree_sej", path = "../graphs/")
 ```
 
 
 ## Age intervention vs ODF/état bucco-dentaire/compliance
 ```{r}
+g1 <- etude %>%
+  filter(!is.na(odf_prechir)) %>%
+  ggplot() +
+  geom_boxplot(aes(x = factor(odf_prechir), y = age, fill = odf_prechir)) +
+  scale_y_continuous(breaks = seq(0, 300, 12), labels = function(x) x / 12) +
+  labs(
+    title = "Distribution age vs ODF prechir",
+    x = "Traitement ODf pre-chir",
+    y = "Age",
+    fill = "ODF prechir"
+  )
 
-g1 = etude %>% 
-    filter(!is.na(odf_prechir)) %>% 
-    ggplot()+
-    geom_boxplot(aes(x = factor(odf_prechir), y = age, fill = odf_prechir))+
-    scale_y_continuous(breaks = seq(0,300,12), labels = function(x) x/12)+
-    labs(title = "Distribution age vs ODF prechir",
-         x = "Traitement ODf pre-chir",
-         y = "Age",
-         fill =  "ODF prechir")
+g2 <- etude %>%
+  filter(!is.na(etat_bd)) %>%
+  ggplot() +
+  geom_boxplot(aes(x = etat_bd, y = age, fill = etat_bd)) +
+  scale_y_continuous(breaks = seq(0, 300, 12), labels = function(x) x / 12) +
+  labs(
+    title = "Distribution age vs état bucco-dentaire",
+    x = "Etat bucco-dentaire",
+    y = "Age",
+    fill = "Etat bucco-dentaire"
+  )
 
-g2 = etude %>% 
-    filter(!is.na(etat_bd)) %>% 
-    ggplot()+
-    geom_boxplot(aes(x = etat_bd, y = age, fill = etat_bd))+
-    scale_y_continuous(breaks = seq(0,300,12), labels = function(x) x/12)+
-    labs(title = "Distribution age vs état bucco-dentaire",
-         x = "Etat bucco-dentaire",
-         y = "Age",
-         fill = "Etat bucco-dentaire")
-
-g3 = etude %>% 
-    filter(!is.na(compliance_ttt)) %>% 
-    ggplot()+
-    geom_boxplot(aes(x = compliance_ttt, y = age, fill = compliance_ttt))+
-    scale_y_continuous(breaks = seq(0,400,12), labels = function(x) x/12)+
-    labs(title = "Distribution age vs compliance ODF",
-         x = "Compliance",
-         y = "Age",
-         fill = "Compliance")
+g3 <- etude %>%
+  filter(!is.na(compliance_ttt)) %>%
+  ggplot() +
+  geom_boxplot(aes(x = compliance_ttt, y = age, fill = compliance_ttt)) +
+  scale_y_continuous(breaks = seq(0, 400, 12), labels = function(x) x / 12) +
+  labs(
+    title = "Distribution age vs compliance ODF",
+    x = "Compliance",
+    y = "Age",
+    fill = "Compliance"
+  )
 
 # Print plots
 g1
 g2
 g3
 
-save_editable_plot(g1,"Boxplot age vs ODF prechir", "../graphs")
-save_editable_plot(g2,"Boxplot age vs état bucco-dentaire", "../graphs")
-save_editable_plot(g3,"Boxplot age vs compliance ODF", "../graphs")
-
+save_editable_plot(g1, "Boxplot age vs ODF prechir", "../graphs")
+save_editable_plot(g2, "Boxplot age vs état bucco-dentaire", "../graphs")
+save_editable_plot(g3, "Boxplot age vs compliance ODF", "../graphs")
 ```
 
 ## Suites
 ```{r suites}
-proc_freq(etude, "complications") %>% 
-    set_table_properties(width = 1, layout = "autofit") %>% 
-    set_caption(caption = "Suites compliquées oui/non")
+proc_freq(etude, "complications") %>%
+  set_table_properties(width = 1, layout = "autofit") %>%
+  set_caption(caption = "Suites compliquées oui/non")
 ```
 
 ## Agenesie dentaire
 ```{r piechart_agenesie_dentaire}
 # Agenesie dentaire
 data <- data.frame(
-    group=c("Oui","Non"),
-    value=c(84,67)
+  group = c("Oui", "Non"),
+  value = c(84, 67)
 )
 
-data <- data %>% 
-    arrange(desc(group)) %>%
-    mutate(prop = value / sum(data$value) *100) %>%
-    mutate(ypos = cumsum(prop)-prop/10)
+data <- data %>%
+  arrange(desc(group)) %>%
+  mutate(prop = value / sum(data$value) * 100) %>%
+  mutate(ypos = cumsum(prop) - prop / 10)
 
 # Basic piechart
-g = ggplot(data, aes(x="", y=value, fill=group)) +
-    geom_bar(stat="identity", width=1, color = "white") +
-    coord_polar("y", start=0)+
-    theme_void()+
-    labs(fill="",
-         title = "Agenesie dentaire")+
-    theme(title = element_text(face = "bold")) +
-    geom_text(aes(y = ypos, label = paste0("N=",value,"\n",round(prop, 1), "%")), color = "white", size=6)
+g <- ggplot(data, aes(x = "", y = value, fill = group)) +
+  geom_bar(stat = "identity", width = 1, color = "white") +
+  coord_polar("y", start = 0) +
+  theme_void() +
+  labs(
+    fill = "",
+    title = "Agenesie dentaire"
+  ) +
+  theme(title = element_text(face = "bold")) +
+  geom_text(aes(y = ypos, label = paste0("N=", value, "\n", round(prop, 1), "%")), color = "white", size = 6)
 
 g
 
-save_editable_plot(g,"Agenesie dentaire - piechart", "../graphs")
+save_editable_plot(g, "Agenesie dentaire - piechart", "../graphs")
 ```
 
 ## Fistule bucconasale
 ```{r piechart_fistule_bucconasale}
 # Fistule bucconasale
 data <- data.frame(
-    group=c("Oui","Non"),
-    value=c(21,130)
+  group = c("Oui", "Non"),
+  value = c(21, 130)
 )
 
-data <- data %>% 
-    arrange(desc(group)) %>%
-    mutate(prop = value / sum(data$value) *100) %>%
-    mutate(ypos = cumsum(prop)-prop/10)
+data <- data %>%
+  arrange(desc(group)) %>%
+  mutate(prop = value / sum(data$value) * 100) %>%
+  mutate(ypos = cumsum(prop) - prop / 10)
 
 # Basic piechart
-g = ggplot(data, aes(x="", y=value, fill=group)) +
-    geom_bar(stat="identity", width=1, color = "white") +
-    coord_polar("y", start=0)+
-    theme_void()+
-    labs(fill="",
-         title = "Fistule bucco-nasale")+
-    theme(title = element_text(face = "bold")) +
-    geom_text(aes(y = ypos, label = paste0("N=",value,"\n",round(prop, 1), "%")), color = "white", size=6)
+g <- ggplot(data, aes(x = "", y = value, fill = group)) +
+  geom_bar(stat = "identity", width = 1, color = "white") +
+  coord_polar("y", start = 0) +
+  theme_void() +
+  labs(
+    fill = "",
+    title = "Fistule bucco-nasale"
+  ) +
+  theme(title = element_text(face = "bold")) +
+  geom_text(aes(y = ypos, label = paste0("N=", value, "\n", round(prop, 1), "%")), color = "white", size = 6)
 
 g
 
-save_editable_plot(g,"Fistule bucco-nasale - piechart", "../graphs")
+save_editable_plot(g, "Fistule bucco-nasale - piechart", "../graphs")
 ```
 
 
+
+
+
+## Tableau evolution
+```{r tableau_evolution}
+evo %>%
+  mutate(Taux.de.succès = Taux.de.succès * 100) %>%
+  rename("Taux de succès" = Taux.de.succès, " " = `...1`) %>%
+  flextable() %>%
+  set_table_properties(layout = "autofit", width = 1) %>%
+  set_caption("Evolution")
+```
 
 
 # Learning curve{.tabset}
 ## Graphe
 ```{r learning_curve, message=F}
 # Plot
-g = lc %>% 
-  #filter(double==0) %>% 
-ggplot(aes(x = as_date(date), y = time, color = factor(interne, labels = c("Oui","Non"))))+
-    geom_point(position = "identity", aes(shape = factor(double)), size = 2.5)+
-    scale_shape_manual(values=c(16, 17))+ 
-    scale_y_continuous(breaks = seq(0,300,20))+
-    scale_x_date(labels = as.character(seq(2010,2024,1)), date_breaks = "1 year")+
-    geom_smooth(method="loess", span = 0.75)+
-    labs(title = "Evolution temps d'intervention",
-         y = "Temps (minutes)",
-         x = "Date intervention",
-         shape = "Intervention bilatérale",
-         color = "Interne")
+g <- lc %>%
+  # filter(double==0) %>%
+  ggplot(aes(x = as_date(date), y = time, color = factor(interne, labels = c("Oui", "Non")))) +
+  geom_point(position = "identity", aes(shape = factor(double)), size = 2.5) +
+  scale_shape_manual(values = c(16, 17)) +
+  scale_y_continuous(breaks = seq(0, 300, 20)) +
+  scale_x_date(labels = as.character(seq(2010, 2024, 1)), date_breaks = "1 year") +
+  geom_smooth(method = "loess", span = 0.75) +
+  labs(
+    title = "Evolution temps d'intervention",
+    y = "Temps (minutes)",
+    x = "Date intervention",
+    shape = "Intervention bilatérale",
+    color = "Interne"
+  )
 
 g
 
 save_editable_plot(g, "Learning curve", "../graphs")
-
 ```
 
 Les lignes colorées du graphique montrent la tendance moyenne dans le temps pour chaque groupe : une pour les cas où le chirurgien effectue l'opération seul, et une autre pour les cas où il était assisté par un interne. Il s'agit en quelque sorte d'une "meilleure estimation" de la durée moyenne de l'opération à une date donnée, sur la base des données dont nous disposons.
@@ -586,13 +636,15 @@ Dans ce contexte, la zone ombrée représente notre "à peu près" pour le temps
 ## Tendance: Mann-Kendall
 ```{r mannkendall, message=F}
 # Mann-Kendall test on the sorted data
-mk = lc %>% arrange(date) %>% filter(double==0) %$% MannKendall(time)
-  # Printint the results nicely
-cbind("Tau" = round(mk$tau,3), "p-value" = pval_format(mk$sl)) %>% 
-    as.data.frame() %>%
-    flextable() %>%
-    set_table_properties(width = 1, layout = "autofit") %>%
-    set_caption("Mann-Kendall test")
+mk <- lc %>%
+  arrange(date) %>%
+  filter(double == 0) %$% MannKendall(time)
+# Printint the results nicely
+cbind("Tau" = round(mk$tau, 3), "p-value" = pval_format(mk$sl)) %>%
+  as.data.frame() %>%
+  flextable() %>%
+  set_table_properties(width = 1, layout = "autofit") %>%
+  set_caption("Mann-Kendall test")
 ```
 
 Pour tester formellement une tendance, nous pouvons utiliser le test de tendance de Mann-Kendall, un test non paramétrique largement utilisé pour détecter les tendances dans les données de séries temporelles. Le test ne suppose pas de distribution spécifique des données et il est particulièrement utile lorsqu'il s'agit de données qui ne sont pas normalement distribuées.
@@ -611,23 +663,27 @@ J'au exclu du test statistique les interventions doubles (qui sont seulement 6).
 Dans le graphe, le fait que les zones ombrées des deux groupes ne se chevauchent pas beaucoup nous indique qu'il existe une différence notable entre les deux scénarios : lorsque le chirurgien travaille seul et lorsqu'il est assisté. Cela n'est pas une surprise et le graphe parle tellement clair que faire un test stat est un peu ridicule mais voici ce que ça donne si on fait un test de student (pour comparer la durée moyenne entre "avec interne" et "sans interne"). A nouveau moi j'ai exclu les 6 interventions bilatérale dans ce test (seulement 1 bilatérale et avec interne). La différence entre la moyenne des 2 groupes est le temps que l'interne fait gagner en moyenne.
 
 ```{r interne_impact}
-surgeon_alone <- lc$time[lc$interne == 0 & lc$double==0]
-surgeon_with_helper <- lc$time[lc$interne == 1 & lc$double==0]
+surgeon_alone <- lc$time[lc$interne == 0 & lc$double == 0]
+surgeon_with_helper <- lc$time[lc$interne == 1 & lc$double == 0]
 
-tstudent = t.test(surgeon_alone, surgeon_with_helper)
+tstudent <- t.test(surgeon_alone, surgeon_with_helper)
 tstudent
 # P-value
-# data.frame("P-value", pval_format(tstudent$p.value)) %>% 
+# data.frame("P-value", pval_format(tstudent$p.value)) %>%
 #     `colnames<-`(c(""," "))
-    # kable(col.names = c("",""), caption = "Test t student") %>%
-    # kable_paper()
+# kable(col.names = c("",""), caption = "Test t student") %>%
+# kable_paper()
 
 # Mean difference between the groups
-tstudent$estimate %>% 
-  as.data.frame(row.names = c("AVEC interne", "SANS interne"))  %>% rownames_to_column()%>% `colnames<-`(c(" ","Temps (minutes)")) %>% flextable %>% set_table_properties(width = 1, layout = "autofit") %>% set_caption("Les internes sont importants faut les traiter bien")
-  # kable(caption = "Temps moyen d'intervention") %>% 
-  # kable_paper()
-
+tstudent$estimate %>%
+  as.data.frame(row.names = c("AVEC interne", "SANS interne")) %>%
+  rownames_to_column() %>%
+  `colnames<-`(c(" ", "Temps (minutes)")) %>%
+  flextable() %>%
+  set_table_properties(width = 1, layout = "autofit") %>%
+  set_caption("Les internes sont importants faut les traiter bien")
+# kable(caption = "Temps moyen d'intervention") %>%
+# kable_paper()
 ```
 L'interne fait épargner 26.4 minutes, l'intervention est en moyenne 19.8% plus rapide.
 
@@ -637,37 +693,36 @@ model <- lm(time ~ date, data = lc)
 summary(model)
 
 # Testing the assumption of linear model
-    # Residuals vs Fitted values plot
+# Residuals vs Fitted values plot
 plot(model, which = 1)
-    # Q-Q plot
+# Q-Q plot
 qqnorm(residuals(model))
 qqline(residuals(model))
-    # Shapiro-Wilk test
+# Shapiro-Wilk test
 shapiro.test(residuals(model))
-    # Durbin Watson Test
+# Durbin Watson Test
 dwtest(model)
 
 # Both the Shapiro-Wilk test for normality and the Durbin-Watson test for independence suggest violations of the assumptions of the linear regression model.
-# 
+#
 # Normality assumption: The Shapiro-Wilk test p-value is very small, which provides evidence against the hypothesis that your residuals are normally distributed. It implies that the distribution of your residuals deviates from a normal distribution.
-# 
+#
 # Independence assumption: The Durbin-Watson test p-value is less than 0.05, indicating that there is a statistically significant autocorrelation in the residuals, which means the independence assumption is violated.
-
 ```
 
 
 # CBCT (26 patients){.tabset}
 ## Délai ODF-chi / chir-ODF
 ```{r}
-paste("Délai cbct-chir",round(mean(radio$delai_cbct_chir),2),"mois")
-paste("Délai chir-cbct", round(mean(radio$delai_chir_cbct),2),"mois")
+paste("Délai cbct-chir", round(mean(radio$delai_cbct_chir), 2), "mois")
+paste("Délai chir-cbct", round(mean(radio$delai_chir_cbct), 2), "mois")
 ```
 
 ## Concordance mesures volume fente
 Le **coefficient de corrélation intraclasse (ICC)** est une mesure précieuse lorsque on évalue la fiabilité des mesures, en particulier dans un scénario de mesures répétées et/ou lorsque plusieurs évaluateurs sont impliqués. Ils existent plusieurs types de **ICC** mais celui qui nous interesse en ce moment est l'ICC1. L'ICC1 est sensible aux différences de moyennes entre les évaluateurs (ou 2 évaluation par le même évaluateur dans ton cas) et constitue une mesure de concordance absolue.
 
 ```{r icc_26}
-psych::ICC(radio[c("vol1_fente","vol2_fente")])$results[1,]
+psych::ICC(radio[c("vol1_fente", "vol2_fente")])$results[1, ]
 ```
 
 L'**ICC** que calculé montre essentiellement que l'opérateur est très cohérent lorsqu'il répète les mesures. Comme les valeurs de l'ICC sont toutes égales à ~1, cela implique une répétabilité parfaite, ce qui est assez rare. Cela peut signifier que les mesures sont effectivement très cohérentes ou qu'il peut y avoir un problème avec les données ou la manière dont les mesures ont été prises (par exemple, un biais systématique).
@@ -688,16 +743,17 @@ percentage_differences <- (differences / means) * 100
 # Plot
 bland_altman_plot <- ggplot() +
   geom_point(aes(x = means, y = percentage_differences)) +
-  geom_hline(yintercept = mean(percentage_differences), color = "red") + 
-  labs(title = "Cleft volume measurements: Bland-Altman Plot", 
-       x = "Mean of measurements", 
-       y = "Difference as a percentage of the mean") +
-  scale_y_continuous(labels = scales::percent_format(scale = 1))  # Display Y axis as percentages
+  geom_hline(yintercept = mean(percentage_differences), color = "red") +
+  labs(
+    title = "Cleft volume measurements: Bland-Altman Plot",
+    x = "Mean of measurements",
+    y = "Difference as a percentage of the mean"
+  ) +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) # Display Y axis as percentages
 
 print(bland_altman_plot)
 
 save_editable_plot(bland_altman_plot, "Cleft volume measurements: Bland-Altman Plot (`vielle` technique chir)", "../graphs")
-
 ```
 
 ### Lire le diagramme de Bland-Altman
@@ -728,19 +784,21 @@ En résumé, le diagramme de Bland-Altman permet d'évaluer visuellement la conc
 ## Concordance mesures volume greffe
 Même chose mais pour les mésuration du volume de la greffe
 ```{r}
-psych::ICC(radio[c("vol1_greffe","vol2_greffe")])$results[1,]
+psych::ICC(radio[c("vol1_greffe", "vol2_greffe")])$results[1, ]
 means <- (radio$vol1_greffe + radio$vol2_greffe) / 2
 differences <- radio$vol1_greffe - radio$vol2_greffe
 percentage_differences <- (differences / means) * 100
 
 # Plot
 bland_altman_plot <- ggplot() +
-    geom_point(aes(x = means, y = percentage_differences)) +
-    geom_hline(yintercept = mean(percentage_differences), color = "red") + 
-    labs(title = "Graft volume measurements: Bland-Altman Plot", 
-         x = "Mean of measurements", 
-         y = "Difference as a percentage of the mean") +
-    scale_y_continuous(labels = scales::percent_format(scale = 1))  # Display Y axis as percentages
+  geom_point(aes(x = means, y = percentage_differences)) +
+  geom_hline(yintercept = mean(percentage_differences), color = "red") +
+  labs(
+    title = "Graft volume measurements: Bland-Altman Plot",
+    x = "Mean of measurements",
+    y = "Difference as a percentage of the mean"
+  ) +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) # Display Y axis as percentages
 
 print(bland_altman_plot)
 
@@ -749,52 +807,51 @@ save_editable_plot(bland_altman_plot, "Graft volume measurements: Bland-Altman P
 
 ## Dents sur arcade
 ```{r dents_arcade}
-proc_freq(radio,"dent_sur_arcade") %>% 
-    set_table_properties(width = 1, layout = "autofit") %>% 
-    set_caption("Dents sur arcade")
+proc_freq(radio, "dent_sur_arcade") %>%
+  set_table_properties(width = 1, layout = "autofit") %>%
+  set_caption("Dents sur arcade")
 ```
 ## Pont osseux
 ```{r}
-proc_freq(radio,"pont_osseux") %>% 
-    set_table_properties(width = 1, layout = "autofit") %>% 
-    set_caption("Pont osseux")
+proc_freq(radio, "pont_osseux") %>%
+  set_table_properties(width = 1, layout = "autofit") %>%
+  set_caption("Pont osseux")
 ```
 
 ## Succès
 ```{r}
-proc_freq(radio,"succes") %>% 
-    set_table_properties(width = 1, layout = "autofit") %>% 
-    set_caption("Succès")
+proc_freq(radio, "succes") %>%
+  set_table_properties(width = 1, layout = "autofit") %>%
+  set_caption("Succès")
 ```
 
 ## Recidive
 ```{r}
-proc_freq(radio,"evaluation_clinique__recidive_")%>% 
-    set_table_properties(width = 1, layout = "autofit") %>% 
-    set_caption("Recidive clinique - procedure standard")
+proc_freq(radio, "evaluation_clinique__recidive_") %>%
+  set_table_properties(width = 1, layout = "autofit") %>%
+  set_caption("Recidive clinique - procedure standard")
 
-proc_freq(radio,"evaluation_3d__recidive_")%>% 
-    set_table_properties(width = 1, layout = "autofit") %>% 
-    set_caption("Recidive 3D - procedure standard")
-
+proc_freq(radio, "evaluation_3d__recidive_") %>%
+  set_table_properties(width = 1, layout = "autofit") %>%
+  set_caption("Recidive 3D - procedure standard")
 ```
 
 
 # Etude préliminaire (13 patients){.tabset}
 ## Délai cbct postop
 ```{r}
-paste("Délai CBCT postop", round(mean(prelim$cbct_postop_mois),2),"mois")
+paste("Délai CBCT postop", round(mean(prelim$cbct_postop_mois), 2), "mois")
 ```
 ## Complications repo
 ```{r}
-proc_freq(prelim, "complication_repo") %>% 
-    set_table_properties(width = 1, layout = "autofit") %>% 
-    set_caption("Complications repose appareil")
+proc_freq(prelim, "complication_repo") %>%
+  set_table_properties(width = 1, layout = "autofit") %>%
+  set_caption("Complications repose appareil")
 ```
 
 ## Concordance mesures volume fente
 ```{r icc_13}
-psych::ICC(prelim[c("vol1_fente","vol2_fente")])$results[1,]
+psych::ICC(prelim[c("vol1_fente", "vol2_fente")])$results[1, ]
 ```
 
 ```{r bland_altman}
@@ -805,33 +862,36 @@ percentage_differences <- (differences / means) * 100
 # Plot
 bland_altman_plot <- ggplot() +
   geom_point(aes(x = means, y = percentage_differences)) +
-  geom_hline(yintercept = mean(percentage_differences), color = "red") + 
-  labs(title = "Pilot study - Cleft volume measurements: Bland-Altman Plot", 
-       x = "Mean of measurements", 
-       y = "Difference as a percentage of the mean") +
-  scale_y_continuous(labels = scales::percent_format(scale = 1))  # Display Y axis as percentages
+  geom_hline(yintercept = mean(percentage_differences), color = "red") +
+  labs(
+    title = "Pilot study - Cleft volume measurements: Bland-Altman Plot",
+    x = "Mean of measurements",
+    y = "Difference as a percentage of the mean"
+  ) +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) # Display Y axis as percentages
 
 print(bland_altman_plot)
 
 save_editable_plot(bland_altman_plot, "Pilot study - Cleft volume measurements - Bland-Altman Plot", "../graphs")
-
 ```
 
 ## Concordance mesures volume greffe
 ```{r}
-psych::ICC(prelim[c("vol1_greffe","vol2_greffe")])$results[1,]
+psych::ICC(prelim[c("vol1_greffe", "vol2_greffe")])$results[1, ]
 means <- (prelim$vol1_greffe + prelim$vol2_greffe) / 2
 differences <- prelim$vol1_greffe - prelim$vol2_greffe
 percentage_differences <- (differences / means) * 100
 
 # Plot
 bland_altman_plot <- ggplot() +
-    geom_point(aes(x = means, y = percentage_differences)) +
-    geom_hline(yintercept = mean(percentage_differences), color = "red") + 
-    labs(title = "Pilot study - Graft volume measurements: Bland-Altman Plot", 
-         x = "Mean of measurements", 
-         y = "Difference as a percentage of the mean") +
-    scale_y_continuous(labels = scales::percent_format(scale = 1))  # Display Y axis as percentages
+  geom_point(aes(x = means, y = percentage_differences)) +
+  geom_hline(yintercept = mean(percentage_differences), color = "red") +
+  labs(
+    title = "Pilot study - Graft volume measurements: Bland-Altman Plot",
+    x = "Mean of measurements",
+    y = "Difference as a percentage of the mean"
+  ) +
+  scale_y_continuous(labels = scales::percent_format(scale = 1)) # Display Y axis as percentages
 
 print(bland_altman_plot)
 
@@ -841,24 +901,22 @@ save_editable_plot(bland_altman_plot, "Pilot study - Graft volume measurements -
 ## % comblement technique standard vs etude preliminaire
 Ca ne demontre rien mais c'est intéressant de le regarder et comparer les 2 moyennes
 ```{r}
-paste("Comblement moyen etude preliminaire:", round(mean(prelim$comblement),2),"%")
+paste("Comblement moyen etude preliminaire:", round(mean(prelim$comblement), 2), "%")
 
-paste("Comblement moyen procedure standard:", round(mean(radio$comblement),2),"%")
-
+paste("Comblement moyen procedure standard:", round(mean(radio$comblement), 2), "%")
 ```
 
 ## Recidive
 Pour les 26 de la procedure classique ainsi que pour les 13 de l'étude preliminaire, l'évaluation 3d est tjrs en accord avec celle clinique.
 Le taux de recidive semble bcp plus bas en passant de 65% à 23%. 
 ```{r}
-proc_freq(prelim,"recidive_eval_clinique")%>% 
-    set_table_properties(width = 1, layout = "autofit") %>% 
-    set_caption("Recidive clinique - etude preliminaire")
+proc_freq(prelim, "recidive_eval_clinique") %>%
+  set_table_properties(width = 1, layout = "autofit") %>%
+  set_caption("Recidive clinique - etude preliminaire")
 
-proc_freq(prelim,"recidive_eval_3d")%>% 
-    set_table_properties(width = 1, layout = "autofit") %>% 
-    set_caption("Recidive 3D - etude preliminaire")
-
+proc_freq(prelim, "recidive_eval_3d") %>%
+  set_table_properties(width = 1, layout = "autofit") %>%
+  set_caption("Recidive 3D - etude preliminaire")
 ```
 
 
@@ -867,8 +925,4 @@ library(openxlsx)
 
 write.xlsx(radio, "cbct_procedure_standard.xlsx")
 write.xlsx(prelim, "cbct_etude_preliminaire.xlsx")
-
-
 ```
-
-
