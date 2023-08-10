@@ -3,17 +3,21 @@ title: "Thèse Jenny CMF"
 author: "Francesco Monti"
 date: "2023-07-25 12:26:12"
 output:
-    word_document: default
-    officedown::rdocx_document: default
-    bookdown::html_document2: 
-        toc:         yes        # Table of contents (toc): yes no
-        toc_float:   yes        # yes no
-        toc_depth:   3              # 1 2 3 4 5
-        highlight : pygments      # default tango kate monochrome espresso pygments...
-        highlight_downlit : FALSE      # TRUE to use the downlit package as syntax highlight engine to highlight inline code and R code chunks (including providing hyperlinks to function documentation). The package needs to be installed to use this feature.
-        code_folding:    "hide"     # none show hide
-        code_download:   yes        # yes no
-        fig_caption: yes        # yes no
+  bookdown::html_document2:
+    toc: yes
+    toc_float: yes
+    toc_depth: 3
+    highlight: pygments
+    highlight_downlit: no
+    code_folding: hide
+    code_download: yes
+    fig_caption: yes
+  word_document: default
+  officedown::rdocx_document: default
+  html_document:
+    toc: yes
+    toc_depth: '3'
+    df_print: paged
 subtitle: Revue des pratiques gingivopériostoplastie
 ---
 
@@ -40,6 +44,7 @@ setwd("..")
 load.project()
 library(officer)
 library(flextable)
+library(gridExtra)
 library(tabulator)
 library(officedown)
 ```
@@ -553,23 +558,35 @@ g <- ggplot(data, aes(x = "", y = value, fill = group)) +
 g
 
 save_editable_plot(g, "Agenesie dentaire - piechart", "../graphs")
+
+
+
+p1 = ggplot(data, aes(x=group, y = value, fill = group)) +
+  geom_col(width = 1, color = "white", position = "identity")+
+  scale_y_continuous(breaks = seq(0,150,10),limits = c(0,130))+
+  labs(title = "Agénésie dentaire",
+       x="",
+       y="N",
+       fill="Agénésie dentaire") +
+  theme
+
 ```
 
 ## Fistule bucconasale
 ```{r piechart_fistule_bucconasale}
 # Fistule bucconasale
-data <- data.frame(
+data2 <- data.frame(
   group = c("Oui", "Non"),
   value = c(21, 130)
 )
 
-data <- data %>%
+data2 <- data2 %>%
   arrange(desc(group)) %>%
   mutate(prop = value / sum(data$value) * 100) %>%
   mutate(ypos = cumsum(prop) - prop / 10)
 
 # Basic piechart
-g <- ggplot(data, aes(x = "", y = value, fill = group)) +
+g <- ggplot(data2, aes(x = "", y = value, fill = group)) +
   geom_bar(stat = "identity", width = 1, color = "white") +
   coord_polar("y", start = 0) +
   theme_void() +
@@ -583,6 +600,21 @@ g <- ggplot(data, aes(x = "", y = value, fill = group)) +
 g
 
 save_editable_plot(g, "Fistule bucco-nasale - piechart", "../graphs")
+
+
+p2 = ggplot(data2, aes(x=group, y = value, fill = group)) +
+  geom_col(width = 1, color = "white", position = "identity")+
+  scale_y_continuous(breaks = seq(0,150,10))+
+  labs(title = "Fistule bucco-nasale",
+       x="",
+       y="N",
+       fill="Fistule BN") +
+  theme
+
+grid.arrange(p1,p2, ncol=2)
+
+save_editable_plot(p1, "agenesie_histogram", "../graphs")
+save_editable_plot(p2, "fistule_histogram", "../graphs")
 ```
 
 
@@ -722,7 +754,7 @@ paste("Délai chir-cbct", round(mean(radio$delai_chir_cbct), 2), "mois")
 Le **coefficient de corrélation intraclasse (ICC)** est une mesure précieuse lorsque on évalue la fiabilité des mesures, en particulier dans un scénario de mesures répétées et/ou lorsque plusieurs évaluateurs sont impliqués. Ils existent plusieurs types de **ICC** mais celui qui nous interesse en ce moment est l'ICC1. L'ICC1 est sensible aux différences de moyennes entre les évaluateurs (ou 2 évaluation par le même évaluateur dans ton cas) et constitue une mesure de concordance absolue.
 
 ```{r icc_26}
-psych::ICC(radio[c("vol1_fente", "vol2_fente")])$results[1, ]
+psych::ICC(radio[c("vol1_fente", "vol2_fente")])$results[1, ] %>% print()
 ```
 
 L'**ICC** que calculé montre essentiellement que l'opérateur est très cohérent lorsqu'il répète les mesures. Comme les valeurs de l'ICC sont toutes égales à ~1, cela implique une répétabilité parfaite, ce qui est assez rare. Cela peut signifier que les mesures sont effectivement très cohérentes ou qu'il peut y avoir un problème avec les données ou la manière dont les mesures ont été prises (par exemple, un biais systématique).
@@ -784,7 +816,8 @@ En résumé, le diagramme de Bland-Altman permet d'évaluer visuellement la conc
 ## Concordance mesures volume greffe
 Même chose mais pour les mésuration du volume de la greffe
 ```{r}
-psych::ICC(radio[c("vol1_greffe", "vol2_greffe")])$results[1, ]
+psych::ICC(radio[c("vol1_greffe", "vol2_greffe")])$results[1, ] %>% print()
+
 means <- (radio$vol1_greffe + radio$vol2_greffe) / 2
 differences <- radio$vol1_greffe - radio$vol2_greffe
 percentage_differences <- (differences / means) * 100
@@ -917,12 +950,4 @@ proc_freq(prelim, "recidive_eval_clinique") %>%
 proc_freq(prelim, "recidive_eval_3d") %>%
   set_table_properties(width = 1, layout = "autofit") %>%
   set_caption("Recidive 3D - etude preliminaire")
-```
-
-
-```{r}
-library(openxlsx)
-
-write.xlsx(radio, "cbct_procedure_standard.xlsx")
-write.xlsx(prelim, "cbct_etude_preliminaire.xlsx")
 ```

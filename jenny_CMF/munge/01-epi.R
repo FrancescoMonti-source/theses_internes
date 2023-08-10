@@ -22,3 +22,8 @@ epi = epi %>%
            sexe = ifelse(sexe=="G", "M", sexe))
 
 
+
+ggplot(data=data, aes(x = `LCC'.max..post-op.(mm)`, y = percent_combl*100))+
+    geom_point()+
+    geom_smooth()
+
