@@ -12,12 +12,7 @@ output:
     code_folding: hide
     code_download: yes
     fig_caption: yes
-  word_document: default
   officedown::rdocx_document: default
-  html_document:
-    toc: yes
-    toc_depth: '3'
-    df_print: paged
 subtitle: Revue des pratiques gingivopériostoplastie
 ---
 
@@ -25,6 +20,7 @@ subtitle: Revue des pratiques gingivopériostoplastie
 library(tidyverse) # The main "tidyverse" packages.
 library(conflicted) # Get a warning/error if several functions with the same name exist.
 conflicts_prefer(dplyr::filter)
+conflicted::conflicts_prefer(stats::fisher.test)
 library(magrittr) # Operator %>% and additional pipe-friendly functions.
 library(pander)
 library(Kendall)
@@ -90,7 +86,7 @@ set_flextable_defaults(
 )
 ```
 
-# Epidemio {.tabset}
+# Partie 1 - Epidemio {.tabset}
 ## Sexe
 ```{r sexe}
 proc_freq(epi, "sexe") %>%
@@ -158,7 +154,7 @@ tab(epi, cote, complete, round = 4) %>%
   set_caption("Characteristiques fentes")
 ```
 
-# Etude {.tabset}
+# Partie 1 - Etude {.tabset}
 ## Fentes operées
 ```{r fentes operées}
 tab(etude, cote_opere, round = 5) %>%
@@ -413,7 +409,7 @@ rbind(tab, tab2, tab3) %>%
 ```
 
 ```{r duree_odf_vs_compliance}
-etude %>%
+g = etude %>%
   filter(!is.na(compliance_ttt)) %>%
   ggplot() +
   geom_boxplot(aes(x = compliance_ttt, y = odf_prechir_months, fill = compliance_ttt)) +
@@ -424,6 +420,11 @@ etude %>%
     y = "Durée ttt (en mois)",
     x = "Compliance"
   )
+
+g
+
+save_editable_plot(g, "ODF vs compliance", path = "../graphs/")
+
 ```
 
 ## Temps hospitalisation
@@ -632,7 +633,7 @@ evo %>%
 ```
 
 
-# Learning curve{.tabset}
+# Partie 1 - Learning curve{.tabset}
 ## Graphe
 ```{r learning_curve, message=F}
 # Plot
@@ -643,6 +644,7 @@ g <- lc %>%
   scale_shape_manual(values = c(16, 17)) +
   scale_y_continuous(breaks = seq(0, 300, 20)) +
   scale_x_date(labels = as.character(seq(2010, 2024, 1)), date_breaks = "1 year") +
+  scale_color_manual(values = c("dodgerblue2","firebrick2"))+
   geom_smooth(method = "loess", span = 0.75) +
   labs(
     title = "Evolution temps d'intervention",
@@ -743,7 +745,7 @@ dwtest(model)
 ```
 
 
-# CBCT (26 patients){.tabset}
+# Partie 2 - CBCT (26 patients){.tabset}
 ## Délai ODF-chi / chir-ODF
 ```{r}
 paste("Délai cbct-chir", round(mean(radio$delai_cbct_chir), 2), "mois")
@@ -754,7 +756,7 @@ paste("Délai chir-cbct", round(mean(radio$delai_chir_cbct), 2), "mois")
 Le **coefficient de corrélation intraclasse (ICC)** est une mesure précieuse lorsque on évalue la fiabilité des mesures, en particulier dans un scénario de mesures répétées et/ou lorsque plusieurs évaluateurs sont impliqués. Ils existent plusieurs types de **ICC** mais celui qui nous interesse en ce moment est l'ICC1. L'ICC1 est sensible aux différences de moyennes entre les évaluateurs (ou 2 évaluation par le même évaluateur dans ton cas) et constitue une mesure de concordance absolue.
 
 ```{r icc_26}
-psych::ICC(radio[c("vol1_fente", "vol2_fente")])$results[1, ] %>% print()
+psych::ICC(radio[c("vol1_fente", "vol2_fente")])$results[1, ] %>% mutate(p = pval_format(p)) %>% flextable() %>% set_table_properties(layout = "autofit", width =1)
 ```
 
 L'**ICC** que calculé montre essentiellement que l'opérateur est très cohérent lorsqu'il répète les mesures. Comme les valeurs de l'ICC sont toutes égales à ~1, cela implique une répétabilité parfaite, ce qui est assez rare. Cela peut signifier que les mesures sont effectivement très cohérentes ou qu'il peut y avoir un problème avec les données ou la manière dont les mesures ont été prises (par exemple, un biais systématique).
@@ -785,7 +787,7 @@ bland_altman_plot <- ggplot() +
 
 print(bland_altman_plot)
 
-save_editable_plot(bland_altman_plot, "Cleft volume measurements: Bland-Altman Plot (`vielle` technique chir)", "../graphs")
+save_editable_plot(bland_altman_plot, "Cleft volume measurements - Bland-Altman Plot (`vielle` technique chir)", "../graphs")
 ```
 
 ### Lire le diagramme de Bland-Altman
@@ -816,7 +818,7 @@ En résumé, le diagramme de Bland-Altman permet d'évaluer visuellement la conc
 ## Concordance mesures volume greffe
 Même chose mais pour les mésuration du volume de la greffe
 ```{r}
-psych::ICC(radio[c("vol1_greffe", "vol2_greffe")])$results[1, ] %>% print()
+psych::ICC(radio[c("vol1_greffe", "vol2_greffe")])$results[1, ] %>% mutate(p = pval_format(p)) %>% flextable() %>% set_table_properties(layout = "autofit", width =1)
 
 means <- (radio$vol1_greffe + radio$vol2_greffe) / 2
 differences <- radio$vol1_greffe - radio$vol2_greffe
@@ -831,12 +833,165 @@ bland_altman_plot <- ggplot() +
     x = "Mean of measurements",
     y = "Difference as a percentage of the mean"
   ) +
-  scale_y_continuous(labels = scales::percent_format(scale = 1)) # Display Y axis as percentages
+  scale_y_continuous(breaks = seq(-50,60,.25),labels = scales::percent_format(scale = 1)) # Display Y axis as percentages
 
 print(bland_altman_plot)
 
-save_editable_plot(bland_altman_plot, "Graft volume measurements: Bland-Altman Plot (`vielle` technique chir)", "../graphs")
+save_editable_plot(bland_altman_plot, "Graft volume measurements - Bland-Altman Plot (`vielle` technique chir)", "../graphs")
 ```
+
+
+## Concordance LRDM
+```{r}
+psych::ICC(radio[c("lrdm_1", "lrdm_2")])$results[1, ] %>% mutate(p = pval_format(p)) %>% flextable() %>% set_table_properties(layout = "autofit", width =1)
+
+means <- (radio$lrdm_1 + radio$lrdm_2) / 2
+differences <- radio$lrdm_1 - radio$lrdm_2
+percentage_differences <- (differences / means) * 100
+
+# Plot
+bland_altman_plot <- ggplot() +
+  geom_point(aes(x = means, y = percentage_differences)) +
+  geom_hline(yintercept = mean(percentage_differences), color = "red") +
+  labs(
+    title = "LRDM measurements: Bland-Altman Plot",
+    x = "Mean of measurements",
+    y = "Difference as a percentage of the mean"
+  ) +
+  scale_y_continuous(breaks = seq(-50,60,1),labels = scales::percent_format(scale = 1)) # Display Y axis as percentages
+
+print(bland_altman_plot)
+
+save_editable_plot(bland_altman_plot, "Concordance LRDM -  Bland-Altman Plot (`vielle` technique chir)", "../graphs")
+```
+
+## Concordance LRDL
+```{r}
+psych::ICC(radio[c("lrdl_1", "lrdl_2")])$results[1, ] %>% mutate(p = pval_format(p)) %>% flextable() %>% set_table_properties(layout = "autofit", width =1)
+
+means <- (radio$lrdl_1 + radio$lrdl_2) / 2
+differences <- radio$lrdl_1 - radio$lrdl_2
+percentage_differences <- (differences / means) * 100
+
+# Plot
+bland_altman_plot <- ggplot() +
+  geom_point(aes(x = means, y = percentage_differences)) +
+  geom_hline(yintercept = mean(percentage_differences), color = "red") +
+  labs(
+    title = "LRDL measurements: Bland-Altman Plot",
+    x = "Mean of measurements",
+    y = "Difference as a percentage of the mean"
+  ) +
+  scale_y_continuous(breaks = seq(-50,60,2),labels = scales::percent_format(scale = 1)) # Display Y axis as percentages
+
+print(bland_altman_plot)
+
+save_editable_plot(bland_altman_plot, "Concordance LRDL -  Bland-Altman Plot (`vielle` technique chir)", "../graphs")
+```
+
+## Concordance HCRDM
+```{r}
+psych::ICC(radio[c("hcrdm_1", "hcrdm_2")])$results[1, ] %>% mutate(p = pval_format(p)) %>% flextable() %>% set_table_properties(layout = "autofit", width =1)
+
+means <- (radio$hcrdm_1 + radio$hcrdm_2) / 2
+differences <- radio$hcrdm_1 - radio$hcrdm_2
+percentage_differences <- (differences / means) * 100
+
+# Plot
+bland_altman_plot <- ggplot() +
+  geom_point(aes(x = means, y = percentage_differences)) +
+  geom_hline(yintercept = mean(percentage_differences), color = "red") +
+  labs(
+    title = "HCRDM measurements: Bland-Altman Plot",
+    x = "Mean of measurements",
+    y = "Difference as a percentage of the mean"
+  ) +
+  scale_y_continuous(breaks = seq(-50,60,1),labels = scales::percent_format(scale = 1)) # Display Y axis as percentages
+
+print(bland_altman_plot)
+
+save_editable_plot(bland_altman_plot, "Concordance HCRDM -  Bland-Altman Plot (`vielle` technique chir)", "../graphs")
+```
+
+## Concordance HCRDL
+```{r}
+psych::ICC(radio[c("hcrdl_1", "hcrdl_2")])$results[1, ] %>% mutate(p = pval_format(p)) %>% flextable() %>% set_table_properties(layout = "autofit", width =1)
+
+means <- (radio$hcrdl_1 + radio$hcrdl_2) / 2
+differences <- radio$hcrdl_1 - radio$hcrdl_2
+percentage_differences <- (differences / means) * 100
+
+# Plot
+bland_altman_plot <- ggplot() +
+  geom_point(aes(x = means, y = percentage_differences)) +
+  geom_hline(yintercept = mean(percentage_differences), color = "red") +
+  labs(
+    title = "HCRDL measurements: Bland-Altman Plot",
+    x = "Mean of measurements",
+    y = "Difference as a percentage of the mean"
+  ) + 
+  scale_y_continuous(breaks = seq(-50,60,5),labels = scales::percent_format(scale = 1)) # Display Y axis as percentages
+
+print(bland_altman_plot)
+
+save_editable_plot(bland_altman_plot, "Concordance HCRDL -  Bland-Altman Plot (`vielle` technique chir)", "../graphs")
+```
+
+
+
+
+## Coverture radiculaire
+```{r coverture_radiculaire}
+radio[21, c("coverture_dm_postop", "coverture_dl_postop")] <- "50"
+
+# Plot
+g = radio %>%
+  select(id, contains("coverture"), -c(gain_coverture_dm, gain_coverture_dl)) %>%
+  mutate(
+    coverture_mesiale_preop = cut(coverture_mesiale_preop,
+      breaks = c(0, 25, 50, 75, 100),
+      labels = c("<=25", "26-50", "51-75", ">75")
+    ),
+    coverture_laterale_preop = cut(coverture_laterale_preop,
+      breaks = c(0, 25, 50, 75, 100),
+      labels = c("<=25", "26-50", "51-75", ">75")
+    ),
+    coverture_dm_postop = cut(as.numeric(coverture_dm_postop),
+      breaks = c(0, 25, 50, 75, 100),
+      labels = c("<=25", "26-50", "51-75", ">75")
+    ),
+    coverture_dl_postop = cut(as.numeric(coverture_dl_postop),
+      breaks = c(0, 25, 50, 75, 100),
+      labels = c("<=25", "26-50", "51-75", ">75")
+    )
+  ) %>%
+  pivot_longer(cols = c(coverture_mesiale_preop:coverture_dl_postop), names_to = "var", values_to = "value") %>%
+  ggplot() +
+  geom_bar(aes(x = factor(var, 
+               levels = c("coverture_mesiale_preop", "coverture_dm_postop",
+                          "coverture_laterale_preop", "coverture_dl_postop"),
+               labels = c("DM pré-op","DM post-op","DL pré-op","DL post-op")),
+               fill = value),
+           color = "gray30"
+    
+  ) +
+  scale_y_continuous(breaks = seq(0, 26, 2)) +
+  labs(
+    title = "Couverture radiculaire",
+    x = "",
+    y = "N",
+    fill = "Group"
+  )+
+    scale_fill_brewer(palette = "Blues")
+
+g
+
+save_editable_plot(g, "Coverture radiculaire pre vs post")
+
+```
+
+
+
 
 ## Dents sur arcade
 ```{r dents_arcade}
@@ -870,7 +1025,7 @@ proc_freq(radio, "evaluation_3d__recidive_") %>%
 ```
 
 
-# Etude préliminaire (13 patients){.tabset}
+# Partie 3 - Etude préliminaire (13 patients){.tabset}
 ## Délai cbct postop
 ```{r}
 paste("Délai CBCT postop", round(mean(prelim$cbct_postop_mois), 2), "mois")
@@ -884,7 +1039,7 @@ proc_freq(prelim, "complication_repo") %>%
 
 ## Concordance mesures volume fente
 ```{r icc_13}
-psych::ICC(prelim[c("vol1_fente", "vol2_fente")])$results[1, ]
+psych::ICC(prelim[c("vol1_fente", "vol2_fente")])$results[1, ] %>% mutate(p = pval_format(p)) %>% flextable() %>% set_table_properties(layout = "autofit", width =1)
 ```
 
 ```{r bland_altman}
@@ -910,7 +1065,9 @@ save_editable_plot(bland_altman_plot, "Pilot study - Cleft volume measurements -
 
 ## Concordance mesures volume greffe
 ```{r}
-psych::ICC(prelim[c("vol1_greffe", "vol2_greffe")])$results[1, ]
+psych::ICC(prelim[c("vol1_greffe", "vol2_greffe")])$results[1, ]%>% mutate(p = pval_format(p)) %>% flextable() %>% set_table_properties(layout = "autofit", width =1)
+
+
 means <- (prelim$vol1_greffe + prelim$vol2_greffe) / 2
 differences <- prelim$vol1_greffe - prelim$vol2_greffe
 percentage_differences <- (differences / means) * 100
@@ -951,3 +1108,70 @@ proc_freq(prelim, "recidive_eval_3d") %>%
   set_table_properties(width = 1, layout = "autofit") %>%
   set_caption("Recidive 3D - etude preliminaire")
 ```
+
+# Wilcoxon et Fisher{.tabset}
+## 26 vs 13 - croissance maxillaire oui/non
+```{r}
+# 26 vs 13 - croissance maxillaire oui/non
+matrix(c(10,3,9,17), ncol=2) %>% fisher.test
+```
+
+**Valeur p** : Une valeur p de 0,02 indique que, en supposant l'hypothèse nulle d'indépendance entre les deux variables catégorielles, la probabilité d'observer un tableau aussi extrême ou plus extrême que celui que vous avez est de 0,02. Un seuil typique de signification statistique est de 0,05, de sorte qu'une valeur p de 0,02 suggère que vous pouvez rejeter l'hypothèse nulle et conclure qu'il existe une association statistiquement significative entre les deux variables catégorielles.
+
+**Hypothèse alternative** : Elle indique ce que vous testez par rapport à l'hypothèse nulle. Dans ce cas, vous testez si le véritable rapport de cotes est différent de 1.
+
+**Intervalle de confiance à 95 %** : Cet intervalle va de 1,153 à 42,624, ce qui est assez large. Cela signifie que, sur la base des données de votre échantillon, vous êtes sûr à 95 % que le véritable rapport de cotes se situe quelque part dans cet intervalle.
+
+**Estimations de l'échantillon** : Le rapport de cotes estimé à partir de votre échantillon est de 5,98. Le rapport de cotes représente la probabilité qu'un résultat se produise dans un groupe par rapport à la probabilité qu'il se produise dans un autre groupe. Un rapport de cotes de 1 indique qu'il n'y a pas de différence entre les groupes. Dans le cas présent, un rapport de cotes de 5,98 indique que la probabilité de survenue du résultat est presque 6 fois plus élevée dans un groupe que dans l'autre (la possibilité de voir une croissance du maxillaire dans ce cas).
+
+Garde à l'esprit que si la signification statistique (donnée par la valeur p) t'indique si un effet existe, elle ne t'indique pas nécessairement si cet effet est important ou significatif (faut toujours tenir compte du contexte de l'étude, de la taille et de la direction des effets, ainsi que d'autres facteurs potentiels ou facteurs de confusion).
+
+## 26 vs 13 - taux de comblement
+```{r}
+wilcox.test(radio$comblement,prelim$comblement, conf.int = T)
+```
+
+Voici la répartition des résultats :
+
+Données : Le test compare deux groupes :
+        radio$comblement : Il s'agit des valeurs de complication de l'ensemble de données de l'étude principale.
+        prelim$comblement : Il s'agit des valeurs de comparaison de l'ensemble de données de l'étude preliminaire.
+
+Statistique de test (W) : La valeur W=102W = 102W=102 est la statistique de test pour le test de somme des rangs de Wilcoxon. Elle représente la somme des rangs de l'un des deux groupes.
+
+Valeur p : La valeur p est de 0,050,050,05. Elle se situe juste au niveau du seuil typique de signification statistique. Si vous utilisez un niveau de signification de 0,05, ce résultat est limite. Il suggère qu'il pourrait y avoir une différence statistiquement significative entre les deux groupes, mais il est juste à la limite de la signification.
+
+Hypothèse alternative : Le test vérifie s'il y a un "changement de lieu" entre les deux groupes. Le résultat suggère que le véritable décalage de localisation n'est pas égal à 0, ce qui signifie que les médianes des deux groupes pourraient être différentes.
+
+Intervalle de confiance : L'intervalle de confiance à 95 % pour la différence de médianes (ou de localisation) entre les deux groupes est compris entre -16,5171 et -0,5833. Cela signifie que nous sommes sûrs à 95 % que la véritable différence entre les médianes se situe dans cet intervalle. Les valeurs négatives suggèrent que la médiane du groupe des 26 est inferieure à celle du groupe des 13.
+
+Estimations de l'échantillon : La différence estimée de localisation (ou médiane) entre les deux groupes est de -9,706.
+
+En résumé, d'après les résultats fournis, il pourrait y avoir une différence statistiquement significative dans les valeurs de comblement. L'ensemble de données de l'étude principale a probablement une valeur médiane inférieure à celle de l'ensemble de données de l'étude preliminaire d'environ 9,706 unités, avec un intervalle de confiance à 95 % de la différence allant de -16,5171 à -0,5833 unités. Cependant, la valeur p se situe juste au seuil de 0,05, ce résultat doit donc être interprété avec prudence.
+p-value de 0.05 est pile limite de la significativité **mais** il n'est pas *<0.05*.
+
+## Partie 2 (n=26) - comblement vs recidive
+```{r}
+wilcox.test(radio$comblement[radio$evaluation_3d__recidive_=="oui"],radio$comblement[radio$evaluation_3d__recidive_=="non"], conf.int = T)
+```
+
+Test de somme des rangs de Wilcoxon (également connu sous le nom de test U de Mann-Whitney). Il s'agit d'un test non paramétrique utilisé pour comparer deux échantillons indépendants afin de déterminer s'ils proviennent de la même distribution. Il est souvent utilisé lorsque les données ne répondent pas aux hypothèses d'un test t, en particulier lorsque les données ne sont pas normalement distribuées.
+
+Voici un aperçu des résultats :
+
+1. **Données** : Le test compare deux groupes :
+   - `radio$comblement[radio$evaluation_3d__recidive_ == "non"]` : Ceci représente les valeurs de `comblement` pour les observations où `evaluation_3d__recidive_` est "non".
+   - `radio$comblement[radio$evaluation_3d__recidive_ == "oui"]` : Ceci représente les valeurs de `comblement` pour les observations où `evaluation_3d__recidive_` est "oui".
+
+2. **Statistique de test (W)** : La valeur W = 139 est la statistique de test pour le test de la somme des rangs de Wilcoxon. Elle représente la somme des rangs de l'un des deux groupes. Tu peux l'ignorer.
+
+3. **valeur-p** : La valeur p est de 0,0003. Il s'agit d'une valeur p très faible, qui suggère qu'il existe une différence statistiquement significative entre les deux groupes. 
+
+4. **Hypothèse alternative** : Le test vérifie s'il y a un "changement de lieu" entre les deux groupes. En termes plus simples, il s'agit de vérifier si la médiane d'un groupe est différente de l'autre. Le résultat suggère que le véritable décalage de localisation n'est pas égal à 0, ce qui signifie que les médianes des deux groupes sont différentes.
+
+5. **Intervalle de confiance** : L'intervalle de confiance à 95 % pour la différence de médianes (ou de localisation) entre les deux groupes est compris entre 5,648 et 20,371. Cela signifie que nous sommes sûrs à 95 % que la véritable différence entre les médianes se situe dans cet intervalle.
+
+6. **Estimation de l'échantillon** : La différence estimée de la médiane entre les deux groupes est de 12,36.
+
+
+
