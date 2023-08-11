@@ -427,6 +427,7 @@ save_editable_plot(g, "ODF vs compliance", path = "../graphs/")
 
 ```
 
+
 ## Temps hospitalisation
 ```{r duree_hospit}
 # Mesures de dispersion
@@ -529,6 +530,25 @@ save_editable_plot(g3, "Boxplot age vs compliance ODF", "../graphs")
 proc_freq(etude, "complications") %>%
   set_table_properties(width = 1, layout = "autofit") %>%
   set_caption(caption = "Suites compliquées oui/non")
+
+
+g = etude %>% 
+    mutate(complications = factor(complications, 
+                          levels = c("0","1"),
+                          labels = c("Simples","Compliqués"))) %>% 
+    ggplot()+
+    geom_bar(aes(x = complications,
+                 fill = complications))+
+    labs(title = "Suites",
+         x = "",
+         y = "N",
+         fill = "Suites")+
+    scale_y_continuous(breaks = seq(0,160,10))
+ 
+g 
+ 
+save_editable_plot(g, "Suites", "../graphs")
+ 
 ```
 
 ## Agenesie dentaire
@@ -945,7 +965,7 @@ save_editable_plot(bland_altman_plot, "Concordance HCRDL -  Bland-Altman Plot (`
 radio[21, c("coverture_dm_postop", "coverture_dl_postop")] <- "50"
 
 # Plot
-g = radio %>%
+radio %>%
   select(id, contains("coverture"), -c(gain_coverture_dm, gain_coverture_dl)) %>%
   mutate(
     coverture_mesiale_preop = cut(coverture_mesiale_preop,
@@ -965,21 +985,25 @@ g = radio %>%
       labels = c("<=25", "26-50", "51-75", ">75")
     )
   ) %>%
-  pivot_longer(cols = c(coverture_mesiale_preop:coverture_dl_postop), names_to = "var", values_to = "value") %>%
-  ggplot() +
+  pivot_longer(cols = c(coverture_mesiale_preop:coverture_dl_postop), names_to = "var", values_to = "value") %>% 
+    count(var, value) %>%
+    group_by(var) %>%
+    mutate(percent = n/sum(n) * 100) %>%
+    ungroup() %>% 
+  ggplot(aes(y = percent)) +
   geom_bar(aes(x = factor(var, 
                levels = c("coverture_mesiale_preop", "coverture_dm_postop",
                           "coverture_laterale_preop", "coverture_dl_postop"),
                labels = c("DM pré-op","DM post-op","DL pré-op","DL post-op")),
                fill = value),
-           color = "gray30"
+           color = "gray30", stat = "identity"
     
   ) +
-  scale_y_continuous(breaks = seq(0, 26, 2)) +
+  scale_y_continuous(breaks = seq(0, 100, 10)) +
   labs(
     title = "Couverture radiculaire",
     x = "",
-    y = "N",
+    y = "%",
     fill = "Group"
   )+
     scale_fill_brewer(palette = "Blues")
