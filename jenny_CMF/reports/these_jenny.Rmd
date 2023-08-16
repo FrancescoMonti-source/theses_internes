@@ -1143,29 +1143,28 @@ matrix(c(10,3,9,17), ncol=2) %>% fisher.test
 
 
 ```{r}
-matrix = matrix(c(10,3,9,17), ncol=2)
-rownames(matrix) = c("Oui", "Non")
-colnames(matrix) = c("ODMF modifié","ODMF classique")
-
-
-# Melt the matrix into a data frame for ggplot
-data_melted <- as.table(matrix) %>% as.data.frame()
-
-# Create the heatmap
-p = ggplot(data = data_melted, aes(x = Var1, y = Var2)) +
-    geom_tile(aes(fill = Freq), color = "white") +
-    geom_text(aes(label = sprintf("%d", Freq)), vjust = 0.5) +
-    scale_fill_gradient(low = "dodgerblue", high = "dodgerblue4") +
-    #theme_minimal() +
-    labs(x = "Croissance maxillaire", y = "Protocole", fill = "Frequency") +
-    #theme(axis.text.x = element_text(angle = 45, hjust = 0))+
-    scale_x_discrete(position = "top")+
-    labs(fill = "N", 
-         title = "Tableau de contingence protocole ODMF / croissance du maxillaire")
-
-p
-
-save_editable_plot(p,"Tableau de contingence protocole ODMF - croissance du maxillaire")
+# matrix = matrix(c(10,3,9,17), ncol=2)
+# rownames(matrix) = c("Oui", "Non")
+# colnames(matrix) = c("ODMF modifié","ODMF classique")
+# 
+# 
+# # Melt the matrix into a data frame for ggplot
+# data_melted <- as.table(matrix) %>% as.data.frame()
+# 
+# # Create the heatmap
+# p = ggplot(data = data_melted, aes(x = Var1, y = Var2)) +
+#     geom_tile(aes(fill = Freq), color = "white") +
+#     geom_text(aes(label = sprintf("%d", Freq)), vjust = 0.5) +
+#     scale_fill_gradient(low = "dodgerblue", high = "dodgerblue4") +
+#     #theme_minimal() +
+#     labs(x = "Croissance maxillaire", y = "Protocole", fill = "Frequency") +
+#     #theme(axis.text.x = element_text(angle = 45, hjust = 0))+
+#     scale_x_discrete(position = "top")+
+#     labs(fill = "N", 
+#          title = "Tableau de contingence protocole ODMF / croissance du maxillaire")
+# 
+# 
+# save_editable_plot(p, "Tableau de contingence protocole ODMF vs croissance du maxillaire")
 
 ```
 
@@ -1190,7 +1189,7 @@ Données : Le test compare deux groupes :
         radio$comblement : Il s'agit des valeurs de complication de l'ensemble de données de l'étude principale.
         prelim$comblement : Il s'agit des valeurs de comparaison de l'ensemble de données de l'étude preliminaire.
 
-Statistique de test (W) : La valeur W=102W = 102W=102 est la statistique de test pour le test de somme des rangs de Wilcoxon. Elle représente la somme des rangs de l'un des deux groupes.
+Statistique de test (W) : La valeur W=102 est la statistique de test pour le test de somme des rangs de Wilcoxon. Elle représente la somme des rangs de l'un des deux groupes.
 
 Valeur p : La valeur p est de 0,050,050,05. Elle se situe juste au niveau du seuil typique de signification statistique. Si vous utilisez un niveau de signification de 0,05, ce résultat est limite. Il suggère qu'il pourrait y avoir une différence statistiquement significative entre les deux groupes, mais il est juste à la limite de la signification.
 
