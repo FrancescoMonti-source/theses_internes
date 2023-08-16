@@ -3,6 +3,7 @@ title: "Thèse Jenny CMF"
 author: "Francesco Monti"
 date: "2023-07-25 12:26:12"
 output:
+  officedown::rdocx_document: default
   bookdown::html_document2:
     toc: yes
     toc_float: yes
@@ -12,7 +13,6 @@ output:
     code_folding: hide
     code_download: yes
     fig_caption: yes
-  officedown::rdocx_document: default
 subtitle: Revue des pratiques gingivopériostoplastie
 ---
 
@@ -36,11 +36,12 @@ library(janitor)
 library(ggthemes)
 
 library(ProjectTemplate)
-setwd("..")
+#setwd("..")
 load.project()
 library(officer)
 library(flextable)
 library(gridExtra)
+library(rvg)
 library(tabulator)
 library(officedown)
 ```
@@ -1138,6 +1139,34 @@ proc_freq(prelim, "recidive_eval_3d") %>%
 ```{r}
 # 26 vs 13 - croissance maxillaire oui/non
 matrix(c(10,3,9,17), ncol=2) %>% fisher.test
+```
+
+
+```{r}
+matrix = matrix(c(10,3,9,17), ncol=2)
+rownames(matrix) = c("Oui", "Non")
+colnames(matrix) = c("ODMF modifié","ODMF classique")
+
+
+# Melt the matrix into a data frame for ggplot
+data_melted <- as.table(matrix) %>% as.data.frame()
+
+# Create the heatmap
+p = ggplot(data = data_melted, aes(x = Var1, y = Var2)) +
+    geom_tile(aes(fill = Freq), color = "white") +
+    geom_text(aes(label = sprintf("%d", Freq)), vjust = 0.5) +
+    scale_fill_gradient(low = "dodgerblue", high = "dodgerblue4") +
+    #theme_minimal() +
+    labs(x = "Croissance maxillaire", y = "Protocole", fill = "Frequency") +
+    #theme(axis.text.x = element_text(angle = 45, hjust = 0))+
+    scale_x_discrete(position = "top")+
+    labs(fill = "N", 
+         title = "Tableau de contingence protocole ODMF / croissance du maxillaire")
+
+p
+
+save_editable_plot(p,"Tableau de contingence protocole ODMF - croissance du maxillaire")
+
 ```
 
 **Valeur p** : Une valeur p de 0,02 indique que, en supposant l'hypothèse nulle d'indépendance entre les deux variables catégorielles, la probabilité d'observer un tableau aussi extrême ou plus extrême que celui que vous avez est de 0,02. Un seuil typique de signification statistique est de 0,05, de sorte qu'une valeur p de 0,02 suggère que vous pouvez rejeter l'hypothèse nulle et conclure qu'il existe une association statistiquement significative entre les deux variables catégorielles.
