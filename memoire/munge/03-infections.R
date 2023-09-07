@@ -25,8 +25,7 @@ infections = infections %>%
 
 pat_operes$infection = ifelse(pat_operes$patid %in% infections$patid,1,0)
 pat_operes$infection_same_sejour = ifelse(pat_operes$evtid %in% infections$evtid,1,0)
-infections$event = "infection"
-pat_operes$event = "surgery"
+
 
 
 left_join(pat_operes,infections)

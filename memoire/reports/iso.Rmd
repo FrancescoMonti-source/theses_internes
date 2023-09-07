@@ -14,3 +14,15 @@ load.project()
 
 ```
 
+```{r}
+surgery = pat_operes %>% select(patid,evtid,dateacte) %>% 
+    distinct() %>% 
+    rename(date_surgery = dateacte) %>% 
+    group_by(patid,evtid) %>% 
+    summarise(date_surgery = min(date_surgery), .groups = "keep")
+
+
+full_join(surgery,reprise) %>% mutate(diff = datent - date(date_surgery)) %>% arrange(diff)
+
+```
+
