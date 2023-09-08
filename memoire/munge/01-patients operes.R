@@ -1,12 +1,12 @@
 # Renaming columns
 pat_operes_actes = pat_operes.pmsiACTES %>% fix_colnames()
-rm(pat_operes.pmsiACTES)
+# rm(pat_operes.pmsiACTES)
 
 pat_operes_diag = pat_operes.pmsiDIAG %>% fix_colnames()
-rm(pat_operes.pmsiDIAG)
+# rm(pat_operes.pmsiDIAG)
 
 pat_operes_general = pat_operes.pmsiGENERAL %>% fix_colnames()
-rm(pat_operes.pmsiGENERAL)
+# rm(pat_operes.pmsiGENERAL)
 
 pat_operes_general = pat_operes_general %>%
     group_by(patid,evtid) %>%
@@ -46,7 +46,7 @@ pat_operes = left_join(pat_operes_general, pat_operes_actes, by = c("patid","evt
     tibble
 
 # Removing nomore useful datasets
-rm(pat_operes_actes)
-rm(pat_operes_diag)
-rm(pat_operes_general)
+# rm(pat_operes_actes)
+# rm(pat_operes_diag)
+# rm(pat_operes_general)
 

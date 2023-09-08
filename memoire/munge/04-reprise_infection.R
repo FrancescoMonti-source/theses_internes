@@ -13,11 +13,12 @@ reprise = full_join(reprise_by_acte.pmsiGENERAL,reprise_by_cim10.pmsiGENERAL) %>
     distinct() %>%
     rename(date_reprise = datent)
 
+reprise = reprise %>% group_by(patid,evtid) %>% summarise(date_reprise = min(date_reprise))
 
-rm(reprise_by_acte.pmsiACTES)
-rm(reprise_by_acte.pmsiDIAG)
-rm(reprise_by_acte.pmsiGENERAL)
-rm(reprise_by_cim10.pmsiACTES)
-rm(reprise_by_cim10.pmsiDIAG)
-rm(reprise_by_cim10.pmsiGENERAL)
-rm(reprise_by_doc.doceds.doc.infection.3)
+# rm(reprise_by_acte.pmsiACTES)
+# rm(reprise_by_acte.pmsiDIAG)
+# rm(reprise_by_acte.pmsiGENERAL)
+# rm(reprise_by_cim10.pmsiACTES)
+# rm(reprise_by_cim10.pmsiDIAG)
+# rm(reprise_by_cim10.pmsiGENERAL)
+# rm(reprise_by_doc.doceds.doc.infection.3)

@@ -16,16 +16,19 @@ load.project()
 ```
 
 ```{r}
-surgery = pat_operes %>% select(patid,evtid,datent) %>% 
+surgery = pat_operes %>% 
+    select(patid,evtid,datent) %>% 
     distinct() %>% 
     rename(date_surgery = datent) %>% 
     group_by(patid,evtid) %>% 
     summarise(date_surgery = min(date_surgery), .groups = "keep")
 
+surgery = surgery %>% rename(chir_id = evtid)
+reprise = reprise %>% rename(infection_id = evtid)
 
 full_join(surgery,reprise) %>%
     mutate(diff = date_reprise - date(date_surgery)) %>%
-    arrange(desc(diff))
-
+    filter(diff > -5 & diff<400) %>% 
+  arrange(patid,date_surgery) %>% left_join(pat_operes[c("patid","evtid","implant","infection")], by = c("patid", "chir_id" = "evtid")) %>% distinct %>% view
 ```
 

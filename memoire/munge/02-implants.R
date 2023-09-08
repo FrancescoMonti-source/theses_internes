@@ -1,9 +1,9 @@
 # Fixing column names
 implants_actes = implants.dmACTES %>% fix_colnames() %>% tibble
-rm(implants.dmACTES)
+# rm(implants.dmACTES)
 
 implants_dms = implants.dmDMS %>% fix_colnames() %>% tibble
-rm(implants.dmDMS)
+# rm(implants.dmDMS)
 
 # Filtering on relevant procedures
 implants_actes = implants_actes %>% filter(code %in% spinal_actes)
@@ -11,18 +11,17 @@ implants_actes = implants_actes %>% filter(code %in% spinal_actes)
 # Filtering on relevant implants
 implants_dms = implants_dms %>%
     mutate(libelle_lpp = tolower(rm_accent(libelle_lpp))) %>%
-    filter(str_detect(libelle_lpp,"rachis"),
-           str_detect(libelle_lpp,"plaque|tige|vis|implant|cage|crochet|coussinet|verrouillage|prothese"))
+    filter(str_detect(libelle_lpp,"rachis|plaque|tige|vis|implant|ancrage|cage|crochet|coussinet|verrouillage|prothese|ancrage|osteosynthese"))
 
 
 # Merging data frames
-implants = left_join(implants_actes,implants_dms[c("patid","evtid","libelle_lpp")]) %>%
+implants = full_join(implants_actes,implants_dms[c("patid","evtid","libelle_lpp")]) %>%
     distinct %>%
     rename(implant_label = libelle_lpp)
 #
-rm(implants.dm)
-rm(implants_actes)
-rm(implants_dms)
+# rm(implants.dm)
+# rm(implants_actes)
+# rm(implants_dms)
 
 
 # Creating binary variable implant yes/no
