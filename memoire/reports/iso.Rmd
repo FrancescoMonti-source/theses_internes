@@ -2,7 +2,7 @@
 title: "R Notebook"
 output: html_notebook
 editor_options: 
-  chunk_output_type: inline
+  chunk_output_type: console
 ---
 
 ```{r load}
@@ -10,19 +10,22 @@ library(tidyverse)
 library(fmckage)
 library(stringr)
 library(ProjectTemplate)
+library(lubridate)
 load.project()
 
 ```
 
 ```{r}
-surgery = pat_operes %>% select(patid,evtid,dateacte) %>% 
+surgery = pat_operes %>% select(patid,evtid,datent) %>% 
     distinct() %>% 
-    rename(date_surgery = dateacte) %>% 
+    rename(date_surgery = datent) %>% 
     group_by(patid,evtid) %>% 
     summarise(date_surgery = min(date_surgery), .groups = "keep")
 
 
-full_join(surgery,reprise) %>% mutate(diff = datent - date(date_surgery)) %>% arrange(diff)
+full_join(surgery,reprise) %>%
+    mutate(diff = date_reprise - date(date_surgery)) %>%
+    arrange(desc(diff))
 
 ```
 
