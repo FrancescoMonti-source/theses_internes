@@ -50,3 +50,4 @@ pat_operes = left_join(pat_operes_general, pat_operes_actes, by = c("patid","evt
 # rm(pat_operes_diag)
 # rm(pat_operes_general)
 
+surgery = pat_operes

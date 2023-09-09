@@ -1,11 +1,44 @@
 ---
-title: "R Notebook"
-output: html_notebook
-editor_options: 
-  chunk_output_type: console
+# General Information --------------------------------------------------------
+title:    "Memoire"
+subtitle: ""
+author:   "FM"
+date:     "`r Sys.time()`" # Automatic date
+# Document Format and Appearance ---------------------------------------------
+# type ?html_document for more details
+output:
+    bookdown::html_document2: 
+        toc:         yes        # Table of contents (toc): yes no
+        toc_float:   yes        # yes no
+        toc_depth:   3              # 1 2 3 4 5
+        highlight : pygments      # default tango kate monochrome espresso pygments...
+        highlight_downlit : FALSE      # TRUE to use the downlit package as syntax highlight engine to highlight inline code and R code chunks (including providing hyperlinks to function documentation). The package needs to be installed to use this feature.
+        code_folding:    "hide"     # none show hide
+        code_download:   yes        # yes no
+        fig_caption: yes        # yes no
+        fig_width : 7
+        fig_height : 5
+        fig_retina : 2
+        theme:       default        # cerulean journal flatly readable paper sandstone ...
+        df_print:    default        # paged kable tibble default
+        number_sections: yes        # Automatic numbering of sections: yes no
+        anchor_sections : FALSE
+        section_divs : TRUE     # Wrap sections in <div> tags, and attach identifiers to the enclosing <div> rather than the header itself.
+        dev : "png"                # Graphics device to use for figure output (defaults to png)
 ---
 
-```{r load}
+```{r load, echo = F, include=FALSE}
+library(knitr)
+# Chunk options
+knitr::opts_chunk$set(
+  echo       = T,    # Should blocks with program code be shown in knitted documents?
+  eval       = TRUE,    # Should program code be evaluated?
+  fig.height = 6,       # Default height for plots.
+  fig.width  = 10,       # Default width for plots.
+  fig.align  = "center", # Default alignment for plots in knitted documents.
+  warning = F
+)
+
 library(tidyverse)
 library(fmckage)
 library(stringr)
@@ -15,62 +48,96 @@ library(lubridate)
 setwd("..")
 load.project()
 
-```
 
-```{r}
-surgery = pat_operes %>% 
-    select(patid,evtid,datent) %>% 
-    distinct() %>% 
-    rename(date_surgery = datent) %>% 
-    group_by(patid,evtid) %>% 
-    summarise(date_surgery = min(date_surgery), .groups = "keep")
 
-surgery = surgery %>% rename(chir_id = evtid)
-reprise = reprise %>% rename(infection_id = evtid)
 
-data = full_join(surgery,reprise) %>%
-    mutate(diff = date_reprise - date(date_surgery)) %>%
-    #filter(diff > -5 & diff<400) %>% 
-  arrange(patid,date_surgery) %>% left_join(pat_operes[c("patid","evtid","implant","infection")], by = c("patid", "chir_id" = "evtid")) %>% distinct
 ```
 
 # Analisi descrittiva
-```{r}
-pat_operes = pat_operes %>% nest(pmsi = c(codeacte,label_acte,type_diag,code,label_code, ufpro)) %>% select(-datsort)
+```{r soggetti identificati}
+surgery <- surgery %>%
+  nest(pmsi = c(codeacte, label_acte, type_diag, code, label_code, ufpro)) %>%
+  select(-datsort)
 
-data = pat_operes %>% full_join((infections[-3]))
-
+data <- left_join(surgery, infections[-c(3, 5)], by = "patid")
+data <- data %>% rename(surgery_id = evtid.x, infection_id = evtid.y)
+data$delay <- date(data$date_reprise) - date(data$datent)
 # 652 pazienti operati al rachide in tutto l'ospedale
-gente_operata = data %$% n_distinct(patid)
+gente_operata <- data %$% n_distinct(patid)
 
-#
-gente_infetta = data %>% filter(infection==1) %$% n_distinct(patid)
-# UF frequentate
-pat_operes$ufpro %>% table
+# gente infetta
+gente_infetta <- data %>% filter(!is.na(date_reprise)) %$% n_distinct(patid)
+
+gente_infetta_dopo_chir <- data %>% filter(delay >= 0) %$% n_distinct(patid)
+
+n_id_infection = data %>% filter(!is.na(infection_id),delay>=0) %$% n_distinct(infection_id)
 ```
 
-Durante il 2020, al CHU, `r gente operata` soggetti sono stati operati al rachide
+Durante il 2020, al CHU, `r gente_operata` soggetti sono stati operati al rachide.
 
-Di questi,`r gente_infetta` soggiorneranno di nuovo presi in carico all'ospedale, per un infezione verosimilmente legata all'atto chirurgico, nei 13 mesi successivi.
+Di questi,`r gente_infetta` sono stati presi in carico all'ospedale, per un infezione durante il periodo di interesse. Ma vediamo di restringere alle infezioni che ci interessano.
+
+Di queste `gente infetta` pazienti, `r gente_infetta_dopo_chir` hanno avuto infezioni che rispettano i criteri di definiione di ISO. Vengono prese in carico nel corso di `r n_id_infection` soggiorni ospedalieri.
+
+Vediamo la distribuzione degli interventi e delle infezioni nel corso del 2020.
+
+```{r timeline surgeries and infections}
+# plot surgeries and infections timeline
+ggplot() +
+  # plotting surgeries
+  geom_histogram(
+    data = data %>% distinct(patid, surgery_id, datent),
+    aes(date(datent), after_stat(count), fill = "Surgeries"),
+    color = "white", binwidth = 7,
+    position = "identity", alpha = .5
+  ) +
+  # plotting infections
+  geom_histogram(
+    data = data %>%
+      filter(delay >= 0) %>%
+      distinct(patid, infection_id, date_reprise),
+    aes(date(date_reprise), after_stat(count), fill = "Infections"),
+    color = "white", binwidth = 7,
+    position = "identity", alpha = .5
+  ) +
+  scale_y_continuous(breaks = seq(0, 50, 2)) +
+  scale_x_date(date_breaks = "1 month", date_labels = "%Y-%m") +
+  labs(
+    fill = "",
+    title = "Surgeries and infections - timeline"
+  )
+```
+
+## Quanto dopo avvengono le infezioni?
+
+```{r misure di dispersione}
+infezioni = data %>% filter(delay>=0) %>% distinct(patid,infection_id,delay) %>%
+    group_by(patid, infection_id) %>% 
+    mutate(rank = rank(delay)) %>% filter(rank==1) 
+
+dispersion = infezioni %$% describe(as.numeric(delay),fast=T)
+
+infezione_subito = infezioni[infezioni$delay==0,] %$% n_distinct(patid)
+
+
+```
+
+In media i soggetti che sviluppano un ISO vengono riospedalizzati `r dispersion$mean` giorni dopo [min = `r dispersion$min`, max = `r dispersion$max`, écart type = `r dispersion$sd`].
+
+Dei `r` soggetti che sviluppano un ISO, `r infezione_subito` (`r infezione_subito*100/n_distinct(infezioni$patid)`%)lo fanno subito dopo l'operazione, durante lo stesso sejour.
 
 ```{r}
-# Time surgery e infezione
+# istogramma ddstribuzione presain carico ISO
 data %>% 
-    ggplot()+
-    geom_density(aes(date(date_surgery), after_stat(count)))+
-    geom_density(aes(date(date_reprise), after_stat(count)), col = "red")+
-    scale_x_date(date_breaks = "1 month")
-
-
-pat_operes %>% select(evtid,dateacte) %>% distinct %>% 
-    ggplot()+
-    geom_histogram(aes(date(dateacte), after_stat(count)), color = "white", binwidth = 7)+ 
-    scale_x_date(date_breaks = "1 month")
-
-data %>% 
-    ggplot()+
-    geom_histogram(aes(date(date_surgery), after_stat(count)), color = "white", binwidth = 7)+ 
-    scale_x_date(date_breaks = "1 month")
-
+    filter(delay>=0) %>%
+    distinct(patid,infection_id,delay) %>%
+    group_by(patid, infection_id) %>% 
+    mutate(rank = rank(delay),
+           delay = as.numeric(delay)) %>%
+    filter(rank==1) %>% 
+    ggplot() +
+    geom_histogram(aes(x=delay), color = "white")+
+    labs(title = "ISO delay")
 ```
+
 
