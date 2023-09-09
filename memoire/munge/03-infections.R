@@ -23,6 +23,10 @@ infections = infections %>%
            dall = str_remove_all(dall, "[:alpha:].{1,5}\\:")) %>%
     rename(date_reprise = datent)
 
+# Restricting date to the relevant period of follow-up
+infections = infections %>% filter(between(date_reprise,"2019-12-01","2021-01-31"))
+
+
 pat_operes$infection = ifelse(pat_operes$patid %in% infections$patid,1,0)
 pat_operes$infection_same_sejour = ifelse(pat_operes$evtid %in% infections$evtid,1,0)
 
