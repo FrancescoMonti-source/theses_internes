@@ -12,6 +12,7 @@ library(stringr)
 library(magrittr)
 library(ProjectTemplate)
 library(lubridate)
+setwd("..")
 load.project()
 
 ```
@@ -33,16 +34,26 @@ data = full_join(surgery,reprise) %>%
   arrange(patid,date_surgery) %>% left_join(pat_operes[c("patid","evtid","implant","infection")], by = c("patid", "chir_id" = "evtid")) %>% distinct
 ```
 
+# Analisi descrittiva
 ```{r}
+pat_operes = pat_operes %>% nest(pmsi = c(codeacte,label_acte,type_diag,code,label_code, ufpro)) %>% select(-datsort)
 
-# 652 pazienti operati al rachide
-pat_operes %$% n_distinct(patid)
+data = pat_operes %>% full_join((infections[-3]))
 
+# 652 pazienti operati al rachide in tutto l'ospedale
+gente_operata = data %$% n_distinct(patid)
+
+#
+gente_infetta = data %>% filter(infection==1) %$% n_distinct(patid)
 # UF frequentate
 pat_operes$ufpro %>% table
+```
 
-pat_operes
+Durante il 2020, al CHU, `r gente operata` soggetti sono stati operati al rachide
 
+Di questi,`r gente_infetta` soggiorneranno di nuovo presi in carico all'ospedale, per un infezione verosimilmente legata all'atto chirurgico, nei 13 mesi successivi.
+
+```{r}
 # Time surgery e infezione
 data %>% 
     ggplot()+
