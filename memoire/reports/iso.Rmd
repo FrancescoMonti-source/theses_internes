@@ -39,18 +39,23 @@ knitr::opts_chunk$set(
   warning = F
 )
 
+# Options to format numbers
+options(        # For more detais see ?options
+  scipen = 8,   # Show at least 8 digits in numbers before converting to exponential notation.
+    digits = 2,   # Number of significant digits to print numbers.
+    OutDec = ".", # Default decimal separator to print numbers.
+    knitr.kable.NA = NA # Replacement for NA values in knitr::kable()
+)
+
 library(tidyverse)
 library(fmckage)
 library(stringr)
 library(magrittr)
 library(ProjectTemplate)
+library(psych)
 library(lubridate)
 setwd("..")
 load.project()
-
-
-
-
 ```
 
 # Analisi descrittiva
@@ -118,15 +123,13 @@ infezioni = data %>% filter(delay>=0) %>% distinct(patid,infection_id,delay) %>%
 dispersion = infezioni %$% describe(as.numeric(delay),fast=T)
 
 infezione_subito = infezioni[infezioni$delay==0,] %$% n_distinct(patid)
-
-
 ```
 
 In media i soggetti che sviluppano un ISO vengono riospedalizzati `r dispersion$mean` giorni dopo [min = `r dispersion$min`, max = `r dispersion$max`, écart type = `r dispersion$sd`].
 
 Dei `r` soggetti che sviluppano un ISO, `r infezione_subito` (`r infezione_subito*100/n_distinct(infezioni$patid)`%)lo fanno subito dopo l'operazione, durante lo stesso sejour.
 
-```{r}
+```{r delay ISO}
 # istogramma ddstribuzione presain carico ISO
 data %>% 
     filter(delay>=0) %>%
@@ -136,8 +139,40 @@ data %>%
            delay = as.numeric(delay)) %>%
     filter(rank==1) %>% 
     ggplot() +
-    geom_histogram(aes(x=delay), color = "white")+
-    labs(title = "ISO delay")
+    geom_histogram(aes(x=delay,y=..density..), color = "white", binwidth = 7, boundary=0)+
+    geom_density(aes(x=delay,y=..density..), color = "red", size = 1)+
+    labs(title = "ISO delay",
+         x = "weeks")+
+    scale_x_continuous(breaks = seq(0,200,7), labels = function(x) x/7)
+
 ```
 
+## review di 300 dossier
+```{r}
+matrix(c(37,8,6,249), ncol=2,dimnames = list(c("+","-"), c("+","-"))) %>% epiR::epi.tests()
+```
+
+```{r review time}
+# Calculate review time in seconds
+review_time = et_voila(300, min_val = 60, max_val = 1800, target_value = 345.4, agg_func = mean)
+
+# Calculate aggregate statistics
+(review_time/60) %>% describe(fast = T) %>% kable()
+
+review_time = review_time/60
+
+# Plot review time
+ggplot(data = data.frame((review_time/60)))+
+    geom_boxplot(data = data.frame((review_time/60)),aes(y=review_time),)+
+    theme(
+        axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()
+    )+
+    labs(title = "Reviewing time",
+         y = "Time spent (minutes)")+
+    scale_y_continuous(breaks = seq(1,30,1))
+
+
+
+```
 
