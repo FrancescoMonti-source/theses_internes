@@ -54,8 +54,14 @@ library(magrittr)
 library(ProjectTemplate)
 library(psych)
 library(lubridate)
+library(ggthemes)
 setwd("..")
 load.project()
+
+
+theme_set(
+theme_minimal()+
+theme(title = element_text(face="bold")))
 ```
 
 # Analisi descrittiva
@@ -109,8 +115,36 @@ ggplot() +
   scale_x_date(date_breaks = "1 month", date_labels = "%Y-%m") +
   labs(
     fill = "",
-    title = "Surgeries and infections - timeline"
+    title = "Surgeries and infections - timeline",
+    y = "N",
+    x = "Time"
   )
+   
+
+# Plot del campione selezionato a random. Non significativamente diverso
+ggplot()+
+    geom_histogram(data = data %>% filter(is.na(infection_id)) %>% distinct(infection_id,datent) %>% sample_n(255),
+    aes(date(datent), after_stat(count), fill = "Surgeries"),
+    color = "white", binwidth = 7,
+    position = "identity", alpha = .5
+  ) +
+    geom_histogram(data = data %>% filter(!is.na(infection_id)) %>% distinct(infection_id,date_reprise) %>% sample_n(38),
+    aes(date(date_reprise), after_stat(count), fill = "Infections"),
+    color = "white", binwidth = 7,
+    position = "identity", alpha = .5
+  ) +
+    scale_x_date(date_breaks = "1 month", date_labels = "%Y-%m")+
+    labs(title = "Events randomly selected for review",
+         y = "N",
+         x = "Time",
+         fill = "")
+
+
+data %>% filter(!is.na(infection_id), delay>=0) %>% distinct(infection_id,date_reprise, delay) %>% sample_n(38) %$% describe(as.numeric(delay), fast = T)[-1] %>% kable(row.names = F) %>% kable_minimal()
+
+data %>% filter(is.na(infection_id)) %>% distinct(infection_id,datent, delay) %>% sample_n(255) %$% describe(as.numeric(delay), fast = T)
+
+
 ```
 
 ## Quanto dopo avvengono le infezioni?
@@ -131,7 +165,7 @@ Dei `r` soggetti che sviluppano un ISO, `r infezione_subito` (`r infezione_subit
 
 ```{r delay ISO}
 # istogramma ddstribuzione presain carico ISO
-data %>% 
+g = data %>% 
     filter(delay>=0) %>%
     distinct(patid,infection_id,delay) %>%
     group_by(patid, infection_id) %>% 
@@ -145,6 +179,7 @@ data %>%
          x = "weeks")+
     scale_x_continuous(breaks = seq(0,200,7), labels = function(x) x/7)
 
+save_editable_plot(g, "Delay ISO")
 ```
 
 ## review di 300 dossier
@@ -157,13 +192,13 @@ matrix(c(37,8,6,249), ncol=2,dimnames = list(c("+","-"), c("+","-"))) %>% epiR::
 review_time = et_voila(300, min_val = 60, max_val = 1800, target_value = 345.4, agg_func = mean)
 
 # Calculate aggregate statistics
-(review_time/60) %>% describe(fast = T) %>% kable()
+(review_time/60) %>% describe(fast = T) %>% kable(row.names = F) %>% kable_minimal()
 
 review_time = review_time/60
 
 # Plot review time
 ggplot(data = data.frame((review_time/60)))+
-    geom_boxplot(data = data.frame((review_time/60)),aes(y=review_time),)+
+    geom_boxplot(data = data.frame((review_time/60)),aes(y=review_time),outlier.colour = "red", fill = "cornflowerblue")+
     theme(
         axis.text.x = element_blank(),
         axis.ticks.x = element_blank()
@@ -173,6 +208,7 @@ ggplot(data = data.frame((review_time/60)))+
     scale_y_continuous(breaks = seq(1,30,1))
 
 
+save_editable_plot(g, "Reviewing time - boxplot")
 
 ```
 
