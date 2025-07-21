@@ -34,10 +34,16 @@ theme_set(theme_bw()) # Default ggplot2 theme
 conflict_prefer("filter", "dplyr")
 conflict_prefer("lag",    "dplyr")
 
-data = read.xlsx("Tableau biostat.xlsx", sheet = 1) %>% 
+data = read.xlsx("tableau_clean.xlsx", sheet = 1) %>% 
         as_tibble() %>%
         select(id:commentaires)
 ```
+
+```{r}
+# Patient vide
+data = data[-204,]
+```
+
 
 ```{r}
 data = data %>% 
@@ -168,5 +174,31 @@ data %>%
                 width = "auto",
                 scrollX = T)
                 )
+```
+
+```{r}
+data %>%
+        mutate(sero_vih_t1 = ifelse(is.na(sero_vih_t1),0,sero_vih_t1),
+               sero_vhc_t1 = ifelse(is.na(sero_vhc_t1),0,sero_vhc_t1)
+               ) 
+
+
+
+si cv_detectable = NA mais reduction_cv_vhd_1 = x, mettre cv_detectable_1 = 0
+
+
+```
+
+```{r}
+data %>%
+        mutate(cirrhose_bin = ifelse(complications_cirrhose == "Non",0,1))
+
+```
+
+```{r}
+data %>% select(id,vhb_traitement,vhd_traitement_1) %>% filter(vhd_traitement_1!="Non traité" & vhb_traitement=="Non traité") %>% view
+
+#remplacer vhb traitement avec des vides
+
 ```
 
