@@ -43,10 +43,7 @@ data <- read.xlsx("tableau_clean.xlsx", sheet = 1) %>%
 ```{r}
 # Patient vide
 data <- data[-204, ]
-```
 
-
-```{r}
 data <- data %>%
   mutate(across(where(is.character), function(x) str_squish(x)),
     across(everything(), function(x) ifelse(as.character(x) == "", NA, x)),
@@ -57,10 +54,15 @@ data <- data %>%
       taille < 100 ~ taille + 100,
       TRUE ~ taille
     ),
-    imc = round(as.numeric(poids) / (as.numeric(taille) / 100)^2, 2)
+    imc = round(as.numeric(poids) / (as.numeric(taille) / 100)^2, 2),
+    sero_vih_t1 = ifelse(is.na(sero_vih_t1), 0, sero_vih_t1),
+    sero_vhc_t1 = ifelse(is.na(sero_vhc_t1), 0, sero_vhc_t1),
+    cv_detectable_1 = case_when(!is.na(reduction_cv_vhd_1) & is.na(cv_detectable_1) ~ 0, 
+                                TRUE ~ cv_detectable_1),
+    cirrhose_bin = ifelse(complications_cirrhose != "Non", 1, 0),
+    oh = ifelse(oh %in% c("Jamais", "Non sevré", "Sevré"), oh, NA)
   )
 
-data <- data %>% mutate(oh = ifelse(oh %in% c("Jamais", "Non sevré", "Sevré"), oh, NA))
 
 ```
 
@@ -276,27 +278,7 @@ data %>%
 ```
 
 ```{r}
-data %>%
-  mutate(
-    sero_vih_t1 = ifelse(is.na(sero_vih_t1), 0, sero_vih_t1),
-    sero_vhc_t1 = ifelse(is.na(sero_vhc_t1), 0, sero_vhc_t1)
-  )
 
 
-
-# si cv_detectable = NA mais reduction_cv_vhd_1 = x, mettre cv_detectable_1 = 0
 ```
 
-```{r}
-data %>%
-  mutate(cirrhose_bin = ifelse(complications_cirrhose == "Non", 0, 1))
-```
-
-```{r}
-data %>%
-  select(id, vhb_traitement, vhd_traitement_1) %>%
-  filter(vhd_traitement_1 != "Non traité" & vhb_traitement == "Non traité") %>%
-  view()
-
-# remplacer vhb traitement avec des vides
-```
