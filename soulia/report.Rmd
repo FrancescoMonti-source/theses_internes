@@ -5,6 +5,7 @@ date: "`r Sys.Date()`"
 output: 
   html_document: 
     toc: true
+    toc_float: true
 editor_options: 
   
   chunk_output_type: console
@@ -26,7 +27,8 @@ knitr::opts_chunk$set(
   eval       = TRUE, # Should program code be evaluated?
   fig.height = 6, # Default height for plots.
   fig.width  = 10, # Default width for plots.
-  fig.align  = "center" # Default alignment for plots in knitted documents.
+  fig.align  = "center", # Default alignment for plots in knitted documents.
+  warning = FALSE
 )
 
 theme_set(theme_bw()) # Default ggplot2 theme
@@ -57,13 +59,13 @@ data <- data %>%
     imc = round(as.numeric(poids) / (as.numeric(taille) / 100)^2, 2),
     sero_vih_t1 = ifelse(is.na(sero_vih_t1), 0, sero_vih_t1),
     sero_vhc_t1 = ifelse(is.na(sero_vhc_t1), 0, sero_vhc_t1),
-    cv_detectable_1 = case_when(!is.na(reduction_cv_vhd_1) & is.na(cv_detectable_1) ~ 0, 
-                                TRUE ~ cv_detectable_1),
+    cv_detectable_1 = case_when(
+      !is.na(reduction_cv_vhd_1) & is.na(cv_detectable_1) ~ 0,
+      TRUE ~ cv_detectable_1
+    ),
     cirrhose_bin = ifelse(complications_cirrhose != "Non", 1, 0),
     oh = ifelse(oh %in% c("Jamais", "Non sevré", "Sevré"), oh, NA)
   )
-
-
 ```
 
 
@@ -150,7 +152,7 @@ data %>%
   )
 ```
 
-
+# Analyse
 ## Sexe & age
 ```{r sexe et age}
 # Define caption (and reuse for filename)
@@ -269,16 +271,95 @@ data %>%
       dom = "Bfrtip",
       buttons = list(
         "copy",
-        # list(extend = "csv",   filename = "consommation_oh"),
-        list(extend = "excel", filename = caption_text),
-        # list(extend = "pdf",   filename = "consommation_oh")
+        list(extend = "excel", filename = caption_text)
       )
     )
   )
 ```
 
+## Bio cirrhotiques vs non
 ```{r}
+# Pour les résultats biologiques, Séparer la moyenne des bio des patients cirrhotiques et non cirrhotiques ?
 
+bio_vars <- c("asat", "alat", "ggt", "bt", "tp", "plaq", "albu")
 
+caption_text = "Bio cirrhotiques vs non"
+
+bio_stats = data %>% 
+  mutate(
+    cirrhose_bin = factor(cirrhose_bin),          # 0 / 1 come fattore
+    across(all_of(bio_vars), as.numeric)          # assicura numerico
+  ) %>% 
+  pivot_longer(                                   
+    cols = all_of(bio_vars),
+    names_to  = "test_bio",
+    values_to = "value"
+  ) %>% 
+  group_by(test_bio, cirrhose_bin) %>% 
+  summarise(
+    mean   = mean(value,   na.rm = TRUE),
+    sd     = sd(value,     na.rm = TRUE),
+    median = median(value, na.rm = TRUE),
+    min    = min(value,    na.rm = TRUE),
+    max    = max(value,    na.rm = TRUE),
+    range  = max - min,
+    .groups = "drop"
+  ) %>% 
+  # --- NEW STEP: round all numeric columns to 2 decimals ---
+  mutate(across(where(is.numeric), ~ round(.x, 2))) 
+
+  # vignette("DT", package = "DT")
+
+  DT::datatable(
+    data = bio_stats,
+    caption = tags$caption(
+      style = "caption-side: top; text-align: left; font-size: 18px; font-weight: bold; padding: 10px;",
+      "Stats biologie"
+    ),
+    extensions = c("Buttons", "RowGroup", "FixedHeader"),
+    options = list(
+      pageLength     = 10,
+      lengthMenu     = list(c(10, 25, 50, -1), c(10, 25, 50, "All")),
+      scrollX        = TRUE,
+      scrollY        = "400px",
+      scrollCollapse = TRUE,
+      #autoWidth      = TRUE,
+      fixedHeader    = TRUE,
+      dom            = "Blfrtip",
+      buttons        = list(
+        "copy",
+        list(extend = "excel", filename = "Stats biologie")
+      ),
+      rowGroup       = list(
+        dataSrc = match("test_bio", names(bio_stats))
+      ),
+      columnDefs = list(
+          list(
+              visible = FALSE,
+              targets = match("test_bio", names(bio_stats))
+          ),
+          list(
+              className = "dt-right",
+              targets = na.omit(match(
+                  names(bio_stats)[sapply(bio_stats, is.numeric)],
+                  names(bio_stats)
+              ))
+          )
+      ),
+      order = list(list(1, 'asc'))
+    )
+  ) |>
+  DT::formatRound(
+    columns = names(bio_stats)[sapply(bio_stats, is.numeric)],
+    digits = 2
+  ) |>
+  DT::formatStyle(
+    columns = names(bio_stats),
+    fontWeight = "bold",
+    `text-align` = "right"
+  )
+
+    
+  
 ```
 
