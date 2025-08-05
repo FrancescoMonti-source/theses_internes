@@ -35,21 +35,83 @@ knitr::opts_chunk$set(
 )
 
 theme_set(
-theme_bw()+
-theme(axis.text = element_text(face = "bold"),
+  theme_bw() +
+    theme(
+      axis.text = element_text(face = "bold"),
       axis.title = element_text(face = "bold"),
-      plot.title = element_text(face = "bold"))
-)# Default ggplot2 theme
-
+      plot.title = element_text(face = "bold")
+    )
+) # Default ggplot2 theme
 
 conflict_prefer("filter", "dplyr")
 conflict_prefer("lag", "dplyr")
-conflicts_prefer(dplyr::select)
+conflict_prefer("select","dplyr")
 
+```
+
+```{r opts dt}
+options(
+  DT.options = list(
+
+    ## 🔢 Pagination & General Display
+    pageLength     = 10,                                     # rows per page on load
+    lengthMenu     = list(c(10, 25, 50, -1), c(10, 25, 50, "All")),  # dropdown menu
+    fixedHeader    = TRUE,                                   # fix header on scroll
+    autoWidth      = FALSE,                                   # auto-calculate column widths
+    deferRender    = TRUE,                                   # better perf on large tables
+    searching      = TRUE,                                   # global search box
+    searchHighlight = TRUE,                                  # highlight matched terms
+    paging         = TRUE,                                   # enable pagination
+    info           = TRUE,                                   # show "Showing 1 to X of Y"
+    
+    ## 🔁 Scrolling
+    scrollX        = TRUE,                                   # horizontal scroll
+    scrollY        = "400px",                                # vertical scroll
+    scrollCollapse = TRUE,                                   # collapse unused scroll area
+    
+    ## 📌 Layout and Buttons
+    dom            = "Blfrtip",                              # controls layout
+    buttons        = list(
+      "copy",
+      list(extend = "excel", filename = "table_export")
+      # Also available: "csv", "pdf", "print"
+    ),
+    
+    ## 🖋 Header style (JS)
+    initComplete = JS(
+      "function(settings, json) {",
+      "$(this.api().table().header()).css({'font-weight':'bold','text-align':'center'});",
+      "}"
+    )
+    
+    ## 🧱 Column definitions (optional – uncomment and modify as needed)
+    # columnDefs = list(
+    #   list(visible = FALSE, targets = 0),                    # hide first column
+    #   list(orderable = FALSE, targets = 1),                  # make column unsortable
+    #   list(className = "dt-center", targets = 2),            # center align
+    #   list(className = "dt-right",  targets = c(3, 4)),      # right align
+    #   list(width = "100px", targets = 5)                     # fixed width
+    # ),
+    
+    ## 🔡 Initial sorting (optional)
+    # order = list(list(1, 'asc')),                            # sort by column 2 (0-indexed JS)
+
+    ## 📂 Row grouping (optional)
+    # rowGroup = list(dataSrc = 1)                             # group by 2nd column (0-indexed)
+    # rowGroup = list(dataSrc = c(1, 2))                       # multiple group levels
+  )
+)
+```
+
+
+
+```{r load data, include=FALSE}
 data <- read.xlsx("tableau_clean.xlsx", sheet = 1) %>%
   as_tibble() %>%
   select(id:commentaires)
 ```
+
+
 
 ```{r some cleaning}
 # Patient vide
@@ -76,20 +138,21 @@ data <- data %>%
     oh = ifelse(oh %in% c("Jamais", "Non sevré", "Sevré"), oh, NA)
   )
 
+data[75,c("taille","poids","imc")] = NA
+
 data$oh[which(data$oh == "Jamais")] <- "Non"
 data$tabac[which(data$tabac == "Jamais")] <- "Non"
 
 data$oh[which(data$oh == "Non sevré")] <- "Actif"
 data$tabac[which(data$tabac == "Non sevré")] <- "Actif"
-
 ```
 
 ```{r fibrose cleaning}
 clean_stage_col <- function(x) {
   x <- str_trim(x)
-  x <- str_replace_all(x, ",", ".")     # convert comma decimal
-  x <- na_if(x, "")                     # blank → NA
-  x <- na_if(x, " ")                     # trailing space → NA
+  x <- str_replace_all(x, ",", ".") # convert comma decimal
+  x <- na_if(x, "") # blank <U+2192> NA
+  x <- na_if(x, " ") # trailing space <U+2192> NA
   return(x)
 }
 
@@ -100,46 +163,55 @@ data <- data %>%
   )
 
 extract_numeric <- function(x) parse_number(x)
-extract_stage   <- function(x) str_extract(str_to_upper(x), "\\bF[0-4]\\b")
+extract_stage <- function(x) str_extract(str_to_upper(x), "\\bF[0-4]\\b")
 
 convert_fibrotest_stage <- function(score) {
   case_when(
-    is.na(score)        ~ NA_character_,
-    score < 0.21        ~ "F0",
-    score < 0.27        ~ "F1",
-    score < 0.49        ~ "F2",
-    score < 0.74        ~ "F3",
-    score >= 0.74       ~ "F4"
+    is.na(score) ~ NA_character_,
+    score < 0.21 ~ "F0",
+    score < 0.27 ~ "F1",
+    score < 0.49 ~ "F2",
+    score < 0.74 ~ "F3",
+    score >= 0.74 ~ "F4"
   )
 }
 
-data = data %>%
+data <- data %>%
   mutate(
-    fibrotest_score  = extract_numeric(fibrotest_baseline),
-    fibroscan_score  = extract_numeric(fibroscanner_baseline),
-
-    fibrotest_baseline  = coalesce(
+    fibrotest_score = extract_numeric(fibrotest_baseline),
+    fibroscan_score = extract_numeric(fibroscanner_baseline),
+    fibrotest_baseline = coalesce(
       extract_stage(fibrotest_baseline),
       convert_fibrotest_stage(fibrotest_score)
     ),
-
     fibroscan_stage = extract_stage(fibroscanner_baseline),
     fib4_baseline = case_when(
-    is.na(fib4_baseline)           ~ NA_character_,
-    fib4_baseline < 1.0            ~ "F0–F1",
-    fib4_baseline < 1.3            ~ "F1–F2",
-    fib4_baseline < 2.0            ~ "F2–F3",
-    fib4_baseline <= 2.67          ~ "F3",
-    fib4_baseline > 2.67           ~ "F4",
-    TRUE ~ fib4_baseline)
+      is.na(fib4_baseline) ~ NA_character_,
+      fib4_baseline < 1.0 ~ "F0–F1",
+      fib4_baseline < 1.3 ~ "F1–F2",
+      fib4_baseline < 2.0 ~ "F2–F3",
+      fib4_baseline <= 2.67 ~ "F3",
+      fib4_baseline > 2.67 ~ "F4",
+      TRUE ~ fib4_baseline
+    )
   )
 
 
-data = data %>% 
-        mutate(score_fibrose =  do.call(coalesce,across(pbh_hepatectomie_baseline:fib4_baseline)))
+data <- data %>%
+  mutate(score_fibrose = do.call(coalesce, across(pbh_hepatectomie_baseline:fib4_baseline)))
 
 data$score_fibrose <- na_if(data$score_fibrose, " ")
 
+data <- data %>%
+  mutate(
+    score_fibrose = factor(score_fibrose, levels = c("F0", "F1", "F2", "F3", "F4"), ordered = TRUE),
+    oh = factor(oh, levels = c("Non", "Sevré", "Actif")),
+    tabac = factor(tabac, levels = c("Non", "Sevré", "Actif")),
+    masld = factor(masld),
+    diabete = factor(diabete),
+    sero_vhc_t1 = factor(sero_vhc_t1),
+    sero_vih_t1 = factor(sero_vih_t1)
+  )
 ```
 
 # Exploration données
@@ -165,15 +237,7 @@ apply(data, 2, function(x) sum(is.na(x))) %>%
                                      padding: 10px;",
       "Valeurs manquantes par variable"
     ),
-    extensions = "Buttons",
     options = list(
-      pageLength = 10,
-      lengthMenu     = list(c(10, 25, 50, -1), c(10, 25, 50, "All")),
-      scrollX = TRUE,
-      scrollY = "400px",
-      scrollCollapse = TRUE,
-      fixedHeader    = TRUE,
-      dom = "Blfrtip",
       buttons = list(
         "copy",
         list(extend = "excel", filename = "tableau_valeurs_manquantes")
@@ -215,15 +279,9 @@ data %>%
     ),
     extensions = "Buttons",
     options = list(
-      pageLength = 10,
-      scrollX = TRUE,
-      scrollY = TRUE,
-      dom = "Bfrtip",
       buttons = list(
         "copy",
-        # list(extend = "csv",   filename = "consommation_oh"),
         list(extend = "excel", filename = caption_text)
-        # list(extend = "pdf",   filename = "consommation_oh")
       )
     )
   )
@@ -271,15 +329,9 @@ fmckage::fdescribe(data, "age", "sexe") %>%
     ),
     extensions = "Buttons",
     options = list(
-      pageLength = 10,
-      scrollX = TRUE,
-      scrollY = TRUE,
-      dom = "Bfrtip",
       buttons = list(
         "copy",
-        # list(extend = "csv",   filename = "consommation_oh"),
         list(extend = "excel", filename = caption_text)
-        # list(extend = "pdf",   filename = "consommation_oh")
       )
     )
   )
@@ -311,15 +363,9 @@ data %>%
     ),
     extensions = "Buttons",
     options = list(
-      pageLength = 10,
-      scrollX = TRUE,
-      scrollY = TRUE,
-      dom = "Bfrtip",
       buttons = list(
         "copy",
-        # list(extend = "csv",   filename = "consommation_oh"),
         list(extend = "excel", filename = caption_text)
-        # list(extend = "pdf",   filename = "consommation_oh")
       )
     )
   )
@@ -344,22 +390,38 @@ data %>%
                font-weight: bold; padding: 10px;",
       caption_text
     ),
-    extensions = "Buttons",
+    extensions = c("Buttons", "RowGroup"),
     options = list(
       pageLength = 10,
-      scrollX = TRUE,
-      scrollY = TRUE,
-      dom = "Bfrtip",
+      lengthMenu = list(c(10, 25, 50, -1), c(10, 25, 50, "All")),
+      dom = "Blfrtip",
       buttons = list(
         "copy",
         list(extend = "excel", filename = caption_text)
+      ),
+      # -- make ALL headers bold and x-aligned -----------------------------
+      initComplete = JS(
+        "function(settings, json) {",
+        "$(this.api().table().header()).css({'font-weight':'bold','text-align':'right'});",
+        "}"
+      ),
+      rowGroup = list(
+        dataSrc = 2
+      ),
+      columnDefs = list(
+        list(
+          visible = FALSE,
+          targets = 2
+        )
       )
-    )
+    ), 
+    rownames = rep("",8),
+    colnames = c('Consommation OH',"Sex", 'N', '% by sex', '% global')
   )
 ```
 
-## Bio cirrhotiques vs non
-
+## Biologie
+### Cirrhotiques vs non
 ```{r resultats biologie by cirrhose}
 # Pour les résultats biologiques, Séparer la moyenne des bio des patients cirrhotiques et non cirrhotiques ?
 
@@ -393,7 +455,7 @@ bio_stats <- data %>%
 # vignette("DT", package = "DT")
 
 DT::datatable(
-        #rownames = FALSE,
+  rownames = rep("",21),
   data = bio_stats,
   caption = tags$caption(
     style = "caption-side: top; text-align: left; font-size: 18px; font-weight: bold; padding: 10px;",
@@ -401,20 +463,12 @@ DT::datatable(
   ),
   extensions = c("Buttons", "RowGroup", "FixedHeader"),
   options = list(
-    pageLength = 10,
-    lengthMenu = list(c(10, 25, 50, -1), c(10, 25, 50, "All")),
-    scrollX = TRUE,
-    scrollY = "400px",
-    scrollCollapse = TRUE,
-    # autoWidth      = TRUE,
-    fixedHeader = TRUE,
-    dom = "Blfrtip",
-    # ── make ALL headers bold and right-aligned ─────────────────────────────
+    # -- make ALL headers bold and right-aligned -----------------------------
     initComplete = JS(
-            "function(settings, json) {",
-            "  $(this.api().table().header()).css({'font-weight':'bold','text-align':'right'});",
-            "}"
-        ),
+      "function(settings, json) {",
+      "  $(this.api().table().header()).css({'font-weight':'bold','text-align':'right'});",
+      "}"
+    ),
     buttons = list(
       "copy",
       list(extend = "excel", filename = "Stats biologie")
@@ -436,213 +490,198 @@ DT::datatable(
       )
     ),
     order = list(list(1, "asc"))
+        
   )
 ) |>
   DT::formatRound(
     columns = names(bio_stats)[sapply(bio_stats, is.numeric)],
     digits = 2
-   ) #|>
-  # DT::formatStyle(
-  #   columns = names(bio_stats),
-  #   fontWeight = "bold",
-  #   `text-align` = "right"
-  # )
+  ) #|>
+# DT::formatStyle(
+#   columns = names(bio_stats),
+#   fontWeight = "bold",
+#   `text-align` = "right"
+# )
 ```
+### Cytolise - stade fibrose
+```{r boxplot asat stade fibrose}
+g = ggplot(data, aes(x = score_fibrose, y = as.numeric(asat))) +
+    geom_boxplot(aes(fill = score_fibrose)) +
+        scale_y_continuous(breaks = seq(0,1000,50))+
+    labs(title = "ASAT par stade de fibrose", x = "Score de fibrose", y = "ASAT (U/L)")
+g
+save_editable_plot(g, "boxplot_asat_score_fibrose", path = "graphs")
+```
+[📥 Télécharger le graphique (PPTX)](graphs/boxplot_asat_score_fibrose.pptx)  
 
-## Transmission
+```{r boxplot alat stade fibrose}
+g = ggplot(data, aes(x = score_fibrose, y = as.numeric(alat))) +
+        geom_boxplot(aes(fill = score_fibrose)) +
+        scale_y_continuous(breaks = seq(0,1000,50))+
+        labs(title = "ALAT par stade de fibrose", 
+             x = "Score de fibrose", 
+             y = "ALAT (U/L)") 
+g
+save_editable_plot(g, "boxplot_aLat_score_fibrose", path = "graphs")
+
+```
+[📥 Télécharger le graphique (PPTX)](graphs/boxplot_alat_score_fibrose.pptx)
+
+Stades de fibrose plus élévés semblent avoir en moyenne des valeurs plus hautes mais il y a beaucoup de superposition entre les boites à moustache donc dèjà grafiquement on voit que ce n'est pas significatif. On a quand même 172/267 valeurs manquantes en plus.
+
+
+## Mode transmission
 
 ```{r mode transmission}
 # Deux profils de patients très différents :
 # o   Originaires de zones d'endémie : Pas de comorbidités, pas de consommation éthylo tabagique
 # o   Caucasiens : OH-Tabac associé, toxicomanie plus fréquente, confection VHC/VIH plus fréquente ?
-data$vhd_mode_transmission[which(data$vhd_mode_transmission == "Maternofoetal")] = "Materno-foetal"
+data$vhd_mode_transmission[which(data$vhd_mode_transmission == "Maternofoetal")] <- "Materno-foetal"
 
-data %>% 
-    select(id,age,ethnie,vhd_mode_transmission,oh,tabac,vhd_evolution_ans,cirrhose_bin) %>%
-    count(vhd_mode_transmission,sort = TRUE)  %>% 
-        mutate("%" = round(n*100/sum(n),2)) %>%  DT::datatable(
-              data = .,
-              caption = tags$caption(
-                style = "caption-side: top; text-align: left; font-size: 18px; font-weight: bold; padding: 10px;",
-                "Mode transmission"
-              ),
-              extensions = c("Buttons", "RowGroup", "FixedHeader"),
-              options = list(
-                pageLength     = 10,
-                lengthMenu     = list(c(10, 25, 50, -1), c(10, 25, 50, "All")),
-                scrollX        = TRUE,
-                scrollY        = "400px",
-                scrollCollapse = TRUE,
-                fixedHeader    = TRUE,
-                dom            = "Blfrtip",
-                buttons        = list(
-                  "copy",
-                  list(extend = "excel", filename = "Mode transmission")
-                ),
-                # ── make ALL headers bold and x-aligned ─────────────────────────────
-                    initComplete = JS(
-                "function(settings, json) {",
-                "$(this.api().table().header()).css({'font-weight':'bold','text-align':'right'});",
-                "}"
-                )
-                #   list(
-                #     className = "dt-right",
-                #     targets = na.omit(match(
-                #       names(.)[sapply(., is.numeric)],
-                #       names(.)
-                #     ))
-                #   )
-                # ),
-                # order = list(list(1, 'asc'))
-              )
-            ) |>
-            DT::formatRound(
-              columns = "%",
-              digits = 2
-            )
+data %>%
+  select(id, age, ethnie, vhd_mode_transmission, oh, tabac, vhd_evolution_ans, cirrhose_bin) %>%
+  count(vhd_mode_transmission, sort = TRUE) %>%
+  mutate("%" = round(n * 100 / sum(n), 2)) %>%
+  DT::datatable(
+          rownames = FALSE,
+    caption = tags$caption(
+      style = "caption-side: top; text-align: left; font-size: 18px; font-weight: bold; padding: 10px;",
+      "Mode transmission"
+    ),
+    extensions = c("Buttons", "RowGroup", "FixedHeader"),
+    options = list(
+      buttons = list(
+        "copy",
+        list(extend = "excel", filename = "Mode transmission")
+      ),
+      # -- make ALL headers bold and x-aligned -----------------------------
+      initComplete = JS(
+        "function(settings, json) {",
+        "$(this.api().table().header()).css({'font-weight':'bold','text-align':'right'});",
+        "}"
+      )
+    )
+  ) |>
+  DT::formatRound(
+    columns = "%",
+    digits = 2
+  )
 ```
 
 ```{r mode transmission by ethnie}
 # Deux profils de patients très différents :
 # o   Originaires de zones d'endémie : Pas de comorbidités, pas de consommation éthylo tabagique
 # o   Caucasiens : OH-Tabac associé, toxicomanie plus fréquente, confection VHC/VIH plus fréquente ?
-data %>% 
-        select(id,age,ethnie,vhd_mode_transmission,oh,tabac,vhd_evolution_ans,cirrhose_bin) %>%
-        group_by(ethnie) %>% 
-        count(vhd_mode_transmission) %>% 
-        arrange(ethnie,desc(n)) %>% 
-        mutate("%_by_ethnie" = round(n*100/sum(n),2)) %>% 
-          # vignette("DT", package = "DT")
-        
-            # vignette("DT", package = "DT")
-          
-            DT::datatable(
-              data = .,
-              caption = tags$caption(
-                style = "caption-side: top; text-align: left; font-size: 18px; font-weight: bold; padding: 10px;",
-                "Mode transmission by ethnie"
-              ),
-              extensions = c("Buttons", "RowGroup", "FixedHeader"),
-              options = list(
-                pageLength     = 10,
-                lengthMenu     = list(c(10, 25, 50, -1), c(10, 25, 50, "All")),
-                scrollX        = TRUE,
-                scrollY        = "400px",
-                scrollCollapse = TRUE,
-                fixedHeader    = TRUE,
-                dom            = "Blfrtip",
-                buttons        = list(
-                  "copy",
-                  list(extend = "excel", filename = "Mode transmission by ethnie")
-                ),
-                # ── make ALL headers bold and x-aligned ─────────────────────────────
-                    initComplete = JS(
-                "function(settings, json) {",
-                "$(this.api().table().header()).css({'font-weight':'bold','text-align':'right'});",
-                "}"
-                ),
-                rowGroup = list(
-                  dataSrc = match("ethnie", names(.))
-                ),
-                columnDefs = list(
-                  list(
-                    visible = FALSE,
-                    targets = match("ethnie", names(.))
-                  ),
-                  list(
-                    className = "dt-right",
-                    targets = na.omit(match(
-                      names(.)[sapply(., is.numeric)],
-                      names(.)
-                    ))
-                  )
-                ),
-                order = list(list(1, 'asc'))
-              )
-            ) |>
-            DT::formatRound(
-              columns = "%_by_ethnie",
-              digits = 2
-            ) 
-
+data %>%
+  select(id, age, ethnie, vhd_mode_transmission, oh, tabac, vhd_evolution_ans, cirrhose_bin) %>%
+  group_by(ethnie) %>%
+  count(vhd_mode_transmission) %>%
+  arrange(ethnie, desc(n)) %>%
+  mutate("%_by_ethnie" = round(n * 100 / sum(n), 2)) %>%
+  DT::datatable(
+          rownames = rep("",21),
+    caption = tags$caption(
+      style = "caption-side: top; text-align: left; font-size: 18px; font-weight: bold; padding: 10px;",
+      "Mode transmission by ethnie"
+    ),
+    extensions = c("Buttons", "RowGroup", "FixedHeader"),
+    options = list(
+      buttons = list(
+        "copy",
+        list(extend = "excel", filename = "Mode transmission by ethnie")
+      ),
+      # -- make ALL headers bold and x-aligned -----------------------------
+      initComplete = JS(
+        "function(settings, json) {",
+        "$(this.api().table().header()).css({'font-weight':'bold','text-align':'right'});",
+        "}"
+      ),
+      rowGroup = list(
+        dataSrc = match("ethnie", names(.))
+      ),
+      columnDefs = list(
+        list(
+          visible = FALSE,
+          targets = match("ethnie", names(.))
+        ),
+        list(
+          className = "dt-right",
+          targets = na.omit(match(
+            names(.)[sapply(., is.numeric)],
+            names(.)
+          ))
+        )
+      ),
+      order = list(list(1, "asc"))
+    )
+  ) |>
+  DT::formatRound(
+    columns = "%_by_ethnie",
+    digits = 2
+  )
 ```
 
 ```{r Mode transmission and comorbidites coinfections by ethnie}
 # Deux profils de patients très différents :
 # o   Originaires de zones d'endémie : Pas de comorbidités, pas de consommation éthylo tabagique
 # o   Caucasiens : OH-Tabac associé, toxicomanie plus fréquente, confection VHC/VIH plus fréquente ?
-data %>% 
-        select(id,age,ethnie,vhd_mode_transmission,oh,tabac,vhd_evolution_ans,cirrhose_bin,diabete,hta,masld,sero_vhc_t1,sero_vih_t1) %>% 
-        group_by(ethnie) %>% 
-        count(vhd_mode_transmission,oh,tabac,sero_vhc_t1,sero_vih_t1) %>% 
-        arrange(ethnie, desc(n)) %>% 
-        mutate("%_by_ethnie" = round(n*100/sum(n),2),
-               n = paste0(n,"/",sum(n))
-               ) %>% 
-        ungroup %>% 
-        DT::datatable(
-              caption = tags$caption(
-                style = "caption-side: top; text-align: left; font-size: 18px; font-weight: bold; padding: 10px;",
-                "Mode transmission & comorbidités/co-infections by ethnie"
-              ),
-              extensions = c("Buttons", "RowGroup", "FixedHeader"),
-              options = list(
-                pageLength     = 10,
-                lengthMenu     = list(c(10, 25, 50, -1), c(10, 25, 50, "All")),
-                scrollX        = TRUE,
-                scrollY        = "400px",
-                scrollCollapse = TRUE,
-                fixedHeader    = TRUE,
-                dom            = "Blfrtip",
-                buttons        = list(
-                  "copy",
-                  list(extend = "excel", filename = "Mode transmission & comorbidités/co-infections by ethnie")
-                ),
-                # ── make ALL headers bold and x-aligned ─────────────────────────────
-                    initComplete = JS(
-                "function(settings, json) {",
-                "$(this.api().table().header()).css({'font-weight':'bold','text-align':'right'});",
-                "}"
-                ),
-                rowGroup = list(
-                  dataSrc = 1
-                ),
-                # columnDefs = list(
-                #   list(
-                #     visible = FALSE,
-                #     targets = match("ethnie", names(.))
-                #   ),
-                #   list(
-                #     className = "dt-right",
-                #     targets = na.omit(match(
-                #       names(.)[sapply(., is.numeric)],
-                #       names(.)
-                #     ))
-                #   )
-                # ),
-                order = list(list(1, 'asc'))
-              )
-            ) |>
-            DT::formatRound(
-              columns = "%_by_ethnie",
-              digits = 2
-            ) 
+data %>%
+  select(id, age, ethnie, vhd_mode_transmission, oh, tabac, vhd_evolution_ans, cirrhose_bin, diabete, hta, masld, sero_vhc_t1, sero_vih_t1) %>%
+  group_by(ethnie) %>%
+  count(vhd_mode_transmission, oh, tabac, sero_vhc_t1, sero_vih_t1) %>%
+  arrange(ethnie, desc(n)) %>%
+  mutate(
+    "%_by_ethnie" = round(n * 100 / sum(n), 2),
+    n = paste0(n, "/", sum(n))
+  ) %>%
+  ungroup() %>%
+  DT::datatable(
+          rownames = rep("",101),
+          filter = list(position = "top"),
+    caption = tags$caption(
+      style = "caption-side: top; text-align: left; font-size: 18px; font-weight: bold; padding: 10px;",
+      "Mode transmission & comorbidités/co-infections by ethnie"
+    ),
+    extensions = c("Buttons", "RowGroup", "FixedHeader"),
+    options = list(
+      buttons = list(
+        "copy",
+        list(extend = "excel", filename = "Mode transmission & comorbidités/co-infections by ethnie")
+      ),
+      # -- make ALL headers bold and x-aligned -----------------------------
+      initComplete = JS(
+        "function(settings, json) {",
+        "$(this.api().table().header()).css({'font-weight':'bold','text-align':'right'});",
+        "}"
+      ),
+      rowGroup = list(
+        dataSrc = 1
+      ),
+      order = list(list(1, "asc"))
+    )
+  ) |>
+  DT::formatRound(
+    columns = "%_by_ethnie",
+    digits = 2
+  )
 ```
 
-# FIBROSE HEPATIQUE
+# Fibrose hépatique
 
 ```{r distribution score fibrose}
-g = data %>%
+g <- data %>%
   count(score_fibrose, name = "count") %>%
   mutate(
     percent = round(count * 100 / sum(count), 1),
     label   = paste0(count, "\n(", percent, "%)")
-  ) %>% 
-  ggplot(aes(x = score_fibrose, y = count)) + 
+  ) %>%
+  ggplot(aes(x = score_fibrose, y = count)) +
   geom_col(fill = "steelblue") +
   geom_text(aes(label = label, y = count - 20), vjust = -0.5, fontface = "bold") +
-  scale_y_continuous(expand = expansion(mult = c(0, 0.1)),
-                     breaks = seq(0, 200, 10)) +
+  scale_y_continuous(
+    expand = expansion(mult = c(0, 0.1)),
+    breaks = seq(0, 200, 10)
+  ) +
   labs(
     x = "Stage fibrose",
     y = "Count",
@@ -655,69 +694,56 @@ g = data %>%
     plot.title = element_text(face = "bold", hjust = 0.5)
   )
 
-save_editable_plot(g,"test", path = "graphs")
+save_editable_plot(g, "distribution_score_fibrose", path = "graphs")
 
 g
 ```
 
-[📥 Télécharger le graphique (PPTX)](graphs/test.pptx)
+[📥 Télécharger le graphique (PPTX)](graphs/distribution_score_fibrose.pptx)
 
 ```{r score fibrose by mode transmission}
-data %>% 
-        select(id, score_fibrose,vhd_mode_transmission, vhd_evolution_ans,pbh_hepatectomie_baseline, matches("fib.*_baseline")) %>% 
-        group_by(vhd_mode_transmission,score_fibrose) %>% 
-        summarise(n = n(), "%" = round(n*100/nrow(.),2), tmp_moyen_depuis_diag_vhd_ans = round(mean(vhd_evolution_ans,na.rm=T),2)) %>% 
-        arrange(vhd_mode_transmission,desc(n)) %>%   
-        DT::datatable(
-            caption = tags$caption(
-              style = "caption-side: top; text-align: left; font-size: 18px; font-weight: bold; padding: 10px;",
-              "Score fibrose by mode transmission et evolution"
-            ),
-            extensions = c("Buttons", "RowGroup", "FixedHeader"),
-            options = list(
-              pageLength     = 10,
-              lengthMenu     = list(c(10, 25, 50, -1), c(10, 25, 50, "All")),
-              scrollX        = TRUE,
-              scrollY        = "400px",
-              scrollCollapse = TRUE,
-              fixedHeader    = TRUE,
-              dom            = "Blfrtip",
-              buttons        = list(
-                "copy",
-                list(extend = "excel", filename = "Score fibrose by mode transmission et evolution")
-              ),
-              # ── make ALL headers bold and x-aligned ─────────────────────────────
-              initComplete = JS(
-              "function(settings, json) {",
-              "$(this.api().table().header()).css({'font-weight':'bold','text-align':'right'});",
-              "}"
-              ),
-              rowGroup = list(
-                dataSrc = match("vhd_mode_transmission", names(.))
-              ),
-                list(
-                  className = "dt-right",
-                  targets = na.omit(match(
-                    names(.)[sapply(., is.numeric)],
-                    names(.)
-                  ))
-                )
-              )
-              #order = list(list(1, 'asc'))
-        )
+data %>%
+  select(id, score_fibrose, vhd_mode_transmission, vhd_evolution_ans, pbh_hepatectomie_baseline, matches("fib.*_baseline")) %>%
+  group_by(vhd_mode_transmission, score_fibrose) %>%
+  summarise(n = n(), "%" = round(n * 100 / nrow(.), 2), tmp_moyen_depuis_diag_vhd_ans = round(mean(vhd_evolution_ans, na.rm = T), 2)) %>%
+  arrange(vhd_mode_transmission, desc(n)) %>%
+  DT::datatable(
+          rownames = rep("",26),
+          filter = list(position = 'top'),
+    caption = tags$caption(
+      style = "caption-side: top; text-align: left; font-size: 18px; font-weight: bold; padding: 10px;",
+      "Score fibrose by mode transmission et evolution"
+    ),
+    extensions = c("Buttons", "RowGroup", "FixedHeader"),
+    options = list(
+      buttons = list(
+        "copy",
+        list(extend = "excel", filename = "Score fibrose by mode transmission et evolution")
+      ),
+      # -- make ALL headers bold and x-aligned -----------------------------
+      initComplete = JS(
+        "function(settings, json) {",
+        "$(this.api().table().header()).css({'font-weight':'bold','text-align':'right'});",
+        "}"
+      ),
+      rowGroup = list(
+        dataSrc = match("vhd_mode_transmission", names(.))
+      ),
+      list(
+        className = "dt-right",
+        targets = na.omit(match(
+          names(.)[sapply(., is.numeric)],
+          names(.)
+        ))
+      )
+    )
+    # order = list(list(1, 'asc'))
+  )
 ```
 
+### Associations
 ```{r }
-data = data %>%
-  mutate(
-    score_fibrose = factor(score_fibrose, levels = c("F0", "F1", "F2", "F3", "F4"), ordered = TRUE),
-    oh = factor(oh, levels = c("Non", "Sevré", "Actif")),
-    tabac = factor(tabac, levels = c("Non", "Sevré", "Actif")),
-    masld = factor(masld),
-    diabete = factor(diabete),
-    sero_vhc_t1 = factor(sero_vhc_t1),
-    sero_vih_t1 = factor(sero_vih_t1)
-  ) 
+
 
 library(tableone)
 
@@ -726,42 +752,34 @@ vars <- c("oh", "tabac", "masld", "diabete", "sero_vhc_t1", "sero_vih_t1", "imc"
 cat_vars <- c("oh", "tabac", "masld", "diabete", "sero_vhc_t1", "sero_vih_t1")
 
 # Create the table stratified by fibrosis
-tab = CreateTableOne(vars = vars, strata = "score_fibrose", data = data, factorVars = cat_vars,includeNA = TRUE) 
+tab <- CreateTableOne(vars = vars, strata = "score_fibrose", data = data, factorVars = cat_vars, includeNA = TRUE)
 
 # Step 2: Convert to data.frame
-tab_df <- print(tab, test = TRUE, quote = FALSE, noSpaces = TRUE, printToggle = FALSE) %>% 
+tab_df <- print(tab, test = TRUE, quote = FALSE, noSpaces = TRUE, printToggle = FALSE) %>%
   as.data.frame()
 
 # Step 3: Add variable names as a column
 tab_df <- tab_df %>%
-    tibble::rownames_to_column(var = "Variable") %>% mutate(Variable = str_remove_all(Variable,"\\.|X"))
+  tibble::rownames_to_column(var = "Variable") %>%
+  mutate(Variable = str_remove_all(Variable, "\\.|X"))
 
 # Optional: Fix rownames or indent levels
-tab_df$Variable <-c("n","oh","- Non","- Sevré","- Actif","- NA","tabac","- Non","- Sevré","- Actif","- NA","masld","- 0","- 1","- NA","diabete","- 0","- 1","- NA","sero_vhc_t1","sero_vih_t1","imc(mean-SD)","vhd_evolution_ans(mean-SD)")
+tab_df$Variable <- c("n", "oh", "- Non", "- Sevré", "- Actif", "- NA", "tabac", "- Non", "- Sevré", "- Actif", "- NA", "masld", "- 0", "- 1", "- NA", "diabete", "- 0", "- 1", "- NA", "sero_vhc_t1", "sero_vih_t1", "imc(mean-SD)", "vhd_evolution_ans(mean-SD)")
 
 # Step 4: Display as DataTable with download buttons
 datatable(
   tab_df,
-  extensions = 'Buttons',
+  extensions = "Buttons",
   options = list(
-    pageLength     = 10,
-    lengthMenu     = list(c(10, 25, 50, -1), c(10, 25, 50, "All")),
-    scrollX        = TRUE,
-    scrollY        = "400px",
-    scrollCollapse = TRUE,
-    fixedHeader    = TRUE,
-    dom            = "Blfrtip",
-    buttons = c('copy', 'excel')
+    buttons = c("copy", "excel")
   ),
   rownames = FALSE,
   caption = tags$caption(
-              style = "caption-side: top; text-align: left; font-size: 18px; font-weight: bold; padding: 10px;",
-              "Associations variables et score de fibrose"
-            )
+    style = "caption-side: top; text-align: left; font-size: 18px; font-weight: bold; padding: 10px;",
+    "Associations variables et score de fibrose"
+  )
 )
 # Bold variable names
-
-
 ```
 
 🧰 Ce que nous avons fait
@@ -782,7 +800,7 @@ Pour cela, nous avons : - Stratifié l’échantillon selon le **stade de fibros
 📊 Interprétation des résultats
 
 -   **Consommation d’alcool (`oh`)**\
-    Nous avons observé une **association significative** entre la consommation d’alcool et le stade de fibrose (p = 0.008). Les patients ayant une consommation sévère étaient plus fréquemment représentés aux stades avancés (notamment F3), suggérant un rôle possible de l’alcool dans la progression de la fibrose.
+    Nous avons observé une **association significative** entre la consommation d’alcool et le stade de fibrose (p = 0.008). Les patients ayant une consommation sévère étaient plus fréquemment représentés aux stades avancés (notamment F3), suggérant un rôle possible de l’alcool dans la progression de la fibrose. Ce qui colle avec ce que nous savons dèjà.
 
 -   **Tabac (`tabac`)**\
     Nous n’avons pas mis en évidence d’association significative entre le tabagisme et le stade de fibrose (p = 0.662). La proportion de fumeurs actifs reste relativement stable entre les différents stades.
@@ -800,7 +818,83 @@ Pour cela, nous avons : - Stratifié l’échantillon selon le **stade de fibros
     Nous n’avons pas observé de différence significative en fonction du statut VIH (p = 0.870).
 
 -   **Indice de masse corporelle (`imc`)**\
-    L’IMC moyen ne varie pas de manière significative selon le stade de fibrose (p = 0.479). Toutefois, nous avons noté une **grande variabilité** dans le groupe F4 (écart-type = 20.94), suggérant la présence de **valeurs extrêmes** ou d’une distribution hétérogène dans ce sous-groupe.
+    L’IMC moyen ne varie pas de manière significative selon le stade de fibrose (p = 0.106). 
 
 -   **Durée d’évolution d’une maladie hépatique (`vhd_evolution_ans`)**\
-    Nous avons observé une **association fortement significative** entre la durée d’évolution et le stade de fibrose (p \< 0.001). Les patients aux stades F2 à F4 présentaient une durée médiane d’évolution deux fois plus longue que ceux aux stades F0/F1, ce qui soutient un lien temporel entre la chronicité de l’atteinte hépatique et la progression de la fibrose.
+    Nous avons observé une **association fortement significative** entre la durée d’évolution et le stade de fibrose (p \< 0.001). Les patients aux stades F2 à F4 présentaient une durée médiane d’évolution deux fois plus longue que ceux aux stades F0/F1, ce qui soutient un lien temporel entre la chronicité de l’atteinte hépatique et la progression de la fibrose ce qui est cohérent. 
+    
+Les résultats sont similaires si on test cirrhose oui/non plutot que le stage:
+```{r}
+tab = CreateTableOne(vars = vars, strata = "cirrhose_bin", data = data, factorVars = cat_vars, includeNA = TRUE)
+
+# Step 2: Convert to data.frame
+tab_df <- print(tab, test = TRUE, quote = FALSE, noSpaces = TRUE, printToggle = FALSE) %>%
+  as.data.frame()
+
+# Step 3: Add variable names as a column
+tab_df <- tab_df %>%
+  tibble::rownames_to_column(var = "Variable") %>%
+  mutate(Variable = str_remove_all(Variable, "\\.|X"))
+
+# Optional: Fix rownames or indent levels
+tab_df$Variable <- c("n", "oh", "- Non", "- Sevré", "- Actif", "- NA", "tabac", "- Non", "- Sevré", "- Actif", "- NA", "masld", "- 0", "- 1", "- NA", "diabete", "- 0", "- 1", "- NA", "sero_vhc_t1", "sero_vih_t1", "imc(mean-SD)", "vhd_evolution_ans(mean-SD)")
+
+# Step 4: Display as DataTable with download buttons
+datatable(
+  tab_df,
+  extensions = "Buttons",
+  options = list(
+    buttons = c("copy", "excel")
+  ),
+  rownames = FALSE,
+  caption = tags$caption(
+    style = "caption-side: top; text-align: left; font-size: 18px; font-weight: bold; padding: 10px;",
+    "Associations variables et cirrhose oui/non"
+  )
+)
+data$vhdcv
+```
+
+# Characteristiques viro
+```{r}
+g = data %>% 
+        select(id,score_fibrose,vhd_cv_pre_traitement) %>%
+        mutate(vhd_cv_pre_traitement = as.numeric(vhd_cv_pre_traitement)) %>% 
+        ggplot()+
+        geom_boxplot(aes(x = score_fibrose, y = vhd_cv_pre_traitement, fill = score_fibrose))+
+        coord_cartesian(ylim = c(0, 12))+
+        geom_point(aes(x = score_fibrose, y = vhd_cv_pre_traitement), alpha = .2, size = 5)+
+        scale_y_continuous(breaks = seq(0,20,2))+
+        labs(title = "Charge virale vs fibrose au diagnostique",
+             y = "CV au diagnostique",
+             x = "Stade fibrose au diagnostique"
+             )
+
+g
+save_editable_plot(g,"cv_vs_fibrose_baseline", path = "graphs")
+```
+
+[📥 Télécharger le graphique (PPTX)](graphs/cv_vs_fibrose_baseline.pptx)
+
+Beaucoup de superposition entre les boites des différents groupes. Si une différence existe elle n'est pas évidente mais c'est certain qu'avec tellement de données manquantes on manque de puissance statistique. La mediane des F0 et F1 est littéralement à 0 (cv non detectable) ce qui veut dire que au moins la moitié des gens dans ces groupes est "indetectable". C'est une piste mais on a pas les données pour faire plus.
+Si on rajoute une stratification par cirrhose oui/non ça devient dramatiquement évident. 
+
+```{r}
+data %>% 
+        select(id,score_fibrose,vhd_cv_pre_traitement,cirrhose_bin) %>%
+        mutate(vhd_cv_pre_traitement = as.numeric(vhd_cv_pre_traitement),
+               cirrhose_bin = factor(cirrhose_bin,labels = c("Non cirrhotique","Cirrhotique"))) %>% 
+        ggplot()+
+        geom_boxplot(aes(x = score_fibrose, y = vhd_cv_pre_traitement, fill = score_fibrose))+
+        coord_cartesian(ylim = c(0, 10))+
+        geom_point(aes(x = score_fibrose, y = vhd_cv_pre_traitement), alpha = .2, size = 5)+
+        scale_y_continuous(breaks = seq(0,20,2))+
+        labs(title = "Charge virale vs fibrose au diagnostique",
+             y = "CV au diagnostique",
+             x = "Stade fibrose au diagnostique"
+             )+
+        facet_wrap(facets = "cirrhose_bin")
+```
+
+
+
