@@ -168,14 +168,15 @@ apply(data, 2, function(x) sum(is.na(x))) %>%
     extensions = "Buttons",
     options = list(
       pageLength = 10,
+      lengthMenu     = list(c(10, 25, 50, -1), c(10, 25, 50, "All")),
       scrollX = TRUE,
-      scrollY = TRUE,
-      dom = "Bfrtip",
+      scrollY = "400px",
+      scrollCollapse = TRUE,
+      fixedHeader    = TRUE,
+      dom = "Blfrtip",
       buttons = list(
         "copy",
-        # list(extend = "csv",   filename = "consommation_oh"),
         list(extend = "excel", filename = "tableau_valeurs_manquantes")
-        # list(extend = "pdf",   filename = "consommation_oh")
       )
     )
   )
