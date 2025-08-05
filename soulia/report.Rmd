@@ -946,4 +946,822 @@ data %>%
 
 ```
 
+```{r}
+data = data %>% mutate(tmp_depuis_diag = age-age_diag_vhd)
+```
+
+## Traitement
+```{r}
+# H/F, Fibrose , Comorbidités etc, TT du VHB (normalement proche de 100%) > A noter, je me suis trompée dans le tableau, je n'ai pas noté un traitement par Lamivudine dans NUC alors qu'il s'agit d'un analogue nucléosidique.
+```
+### traitement VHD vs sexe
+```{r traitement VHD 1eme ligne vs sexe}
+data %>% 
+        group_by(vhd_traitement_1) %>% 
+        count(sexe) %>% 
+        mutate("% par traitement" = round(n*100/sum(n),2)) %>% 
+        ungroup() %>% 
+        mutate("% touts tt confondus" = round(n*100/sum(n),2),
+               vhd_traitement_1 = case_when(
+                        vhd_traitement_1 == "Bulévirtide" ~ paste0(vhd_traitement_1," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_1) %>%
+                                                                filter(vhd_traitement_1=="Bulévirtide") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        vhd_traitement_1 == "Bulévirtide en association pegIFNa" ~ paste0(vhd_traitement_1," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_1) %>%
+                                                                filter(vhd_traitement_1=="Bulévirtide en association pegIFNa") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        vhd_traitement_1 == "PegIFNa" ~ paste0(vhd_traitement_1," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_1) %>%
+                                                                filter(vhd_traitement_1=="PegIFNa") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        vhd_traitement_1 == "Non traité" ~ paste0(vhd_traitement_1," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_1) %>%
+                                                                filter(vhd_traitement_1=="Non traité") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        is.na(vhd_traitement_1) ~ paste0("Données manquantes"," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_1) %>%
+                                                                filter(is.na(vhd_traitement_1)) %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+               )
+               ) %>% 
+        DT::datatable(
+                caption = tags$caption(
+                        style = "caption-side: top; text-align: left; 
+                        font-size: 18px; font-weight: bold; padding: 10px;",
+                        "traitement VHD 1ère ligne vs sexe"
+                ),
+                rownames = FALSE,
+                extensions = c("Buttons", "RowGroup", "FixedHeader"),
+                options = list(buttons = list("copy",  
+                                        list(extend = "excel", filename = "vhd_traitement_1 vs sexe")
+		),
+                        rowGroup = list(
+                                dataSrc = match("vhd_traitement_1", names(.))-1   
+                        ),
+                        columnDefs = list(
+                                list(
+                                        visible = FALSE,
+                                        targets = match("vhd_traitement_1", names(.)) -1
+                                )
+                        )
+                )
+        )
+```
+```{r traitement VHD 2eme ligne vs sexe}
+data %>% 
+        group_by(vhd_traitement_2) %>% 
+        count(sexe) %>% 
+        mutate("% par traitement" = round(n*100/sum(n),2)) %>% 
+        ungroup() %>% 
+        mutate("% touts tt confondus" = round(n*100/sum(n),2),
+               vhd_traitement_2 = case_when(
+                        vhd_traitement_2 == "Bulévirtide" ~ paste0(vhd_traitement_2," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_2) %>%
+                                                                filter(vhd_traitement_2=="Bulévirtide") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        vhd_traitement_2 == "Bulévirtide en association pegIFNa" ~ paste0(vhd_traitement_2," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_2) %>%
+                                                                filter(vhd_traitement_2=="Bulévirtide en association pegIFNa") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        vhd_traitement_2 == "PegIFNa" ~ paste0(vhd_traitement_2," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_2) %>%
+                                                                filter(vhd_traitement_2=="PegIFNa") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        is.na(vhd_traitement_2) ~ paste0("Données manquantes"," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_2) %>%
+                                                                filter(is.na(vhd_traitement_2)) %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+               )
+               ) %>% 
+        DT::datatable(
+                caption = tags$caption(
+                        style = "caption-side: top; text-align: left; 
+                        font-size: 18px; font-weight: bold; padding: 10px;",
+                        "traitement VHD 1ème ligne vs sexe"
+                ),
+                rownames = FALSE,
+                extensions = c("Buttons", "RowGroup", "FixedHeader"),
+                options = list(buttons = list("copy",  
+                                        list(extend = "excel", filename = "vhd_traitement_2 vs sexe")
+		),
+                        rowGroup = list(
+                                dataSrc = match("vhd_traitement_2", names(.))-1   
+                        ),
+                        columnDefs = list(
+                                list(
+                                        visible = FALSE,
+                                        targets = match("vhd_traitement_2", names(.)) -1
+                                )
+                        )
+                )
+        )
+```
+```{r traitement VHD 3eme ligne vs sexe}
+data %>% 
+        group_by(vhd_traitement_3) %>% 
+        count(sexe) %>% 
+        mutate("% par traitement" = round(n*100/sum(n),2)) %>% 
+        ungroup() %>% 
+        mutate("% touts tt confondus" = round(n*100/sum(n),2),
+               vhd_traitement_3 = case_when(
+                        vhd_traitement_3 == "Bulévirtide" ~ paste0(vhd_traitement_3," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_3) %>%
+                                                                filter(vhd_traitement_3=="Bulévirtide") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        vhd_traitement_3 == "Bulévirtide en association pegIFNa" ~ paste0(vhd_traitement_3," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_3) %>%
+                                                                filter(vhd_traitement_3=="Bulévirtide en association pegIFNa") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        is.na(vhd_traitement_3) ~ paste0("Données manquantes"," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_3) %>%
+                                                                filter(is.na(vhd_traitement_3)) %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+               )
+               ) %>% 
+        DT::datatable(
+                caption = tags$caption(
+                        style = "caption-side: top; text-align: left; 
+                        font-size: 18px; font-weight: bold; padding: 10px;",
+                        "traitement VHD 3ème ligne vs sexe"
+                ),
+                rownames = FALSE,
+                extensions = c("Buttons", "RowGroup", "FixedHeader"),
+                options = list(buttons = list("copy",  
+                                        list(extend = "excel", filename = "vhd_traitement_3 vs sexe")
+		),
+                        rowGroup = list(
+                                dataSrc = match("vhd_traitement_3", names(.))-1   
+                        ),
+                        columnDefs = list(
+                                list(
+                                        visible = FALSE,
+                                        targets = match("vhd_traitement_3", names(.)) -1
+                                )
+                        )
+                )
+        )
+```
+### traitement VHD vs score fibrose
+```{r traitement VHD 1eme ligne vs score fibrose}
+data %>% 
+        group_by(vhd_traitement_1) %>% 
+        count(score_fibrose) %>% 
+        mutate("% par traitement" = round(n*100/sum(n),2)) %>% 
+        ungroup() %>% 
+        mutate("% touts tt confondus" = round(n*100/sum(n),2),
+               vhd_traitement_1 = case_when(
+                        vhd_traitement_1 == "Bulévirtide" ~ paste0(vhd_traitement_1," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_1) %>%
+                                                                filter(vhd_traitement_1=="Bulévirtide") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        vhd_traitement_1 == "Bulévirtide en association pegIFNa" ~ paste0(vhd_traitement_1," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_1) %>%
+                                                                filter(vhd_traitement_1=="Bulévirtide en association pegIFNa") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        vhd_traitement_1 == "PegIFNa" ~ paste0(vhd_traitement_1," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_1) %>%
+                                                                filter(vhd_traitement_1=="PegIFNa") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        vhd_traitement_1 == "Non traité" ~ paste0(vhd_traitement_1," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_1) %>%
+                                                                filter(vhd_traitement_1=="Non traité") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        is.na(vhd_traitement_1) ~ paste0("Données manquantes"," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_1) %>%
+                                                                filter(is.na(vhd_traitement_1)) %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+               )
+               ) %>% 
+        DT::datatable(
+                caption = tags$caption(
+                        style = "caption-side: top; text-align: left; 
+                        font-size: 18px; font-weight: bold; padding: 10px;",
+                        "traitement VHD 1ère ligne vs score fibrose"
+                ),
+                rownames = FALSE,
+                extensions = c("Buttons", "RowGroup", "FixedHeader"),
+                options = list(buttons = list("copy",  
+                                        list(extend = "excel", filename = "vhd_traitement_1 vs score fibrose")
+		),
+                        rowGroup = list(
+                                dataSrc = match("vhd_traitement_1", names(.))-1   
+                        ),
+                        columnDefs = list(
+                                list(
+                                        visible = FALSE,
+                                        targets = match("vhd_traitement_1", names(.)) -1
+                                )
+                        )
+                )
+        )
+```
+```{r traitement VHD 2eme ligne vs score fibrose}
+data %>% 
+        group_by(vhd_traitement_2) %>% 
+        count(score_fibrose) %>% 
+        mutate("% par traitement" = round(n*100/sum(n),2)) %>% 
+        ungroup() %>% 
+        mutate("% touts tt confondus" = round(n*100/sum(n),2),
+               vhd_traitement_2 = case_when(
+                        vhd_traitement_2 == "Bulévirtide" ~ paste0(vhd_traitement_2," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_2) %>%
+                                                                filter(vhd_traitement_2=="Bulévirtide") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        vhd_traitement_2 == "Bulévirtide en association pegIFNa" ~ paste0(vhd_traitement_2," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_2) %>%
+                                                                filter(vhd_traitement_2=="Bulévirtide en association pegIFNa") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        vhd_traitement_2 == "PegIFNa" ~ paste0(vhd_traitement_2," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_2) %>%
+                                                                filter(vhd_traitement_2=="PegIFNa") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        is.na(vhd_traitement_2) ~ paste0("Données manquantes"," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_2) %>%
+                                                                filter(is.na(vhd_traitement_2)) %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+               )
+               ) %>% 
+        DT::datatable(
+                caption = tags$caption(
+                        style = "caption-side: top; text-align: left; 
+                        font-size: 18px; font-weight: bold; padding: 10px;",
+                        "traitement VHD 2eme ligne vs score fibrose"
+                ),
+                rownames = FALSE,
+                extensions = c("Buttons", "RowGroup", "FixedHeader"),
+                options = list(buttons = list("copy",  
+                                        list(extend = "excel", filename = "vhd_traitement_2 vs score fibrose")
+		),
+                        rowGroup = list(
+                                dataSrc = match("vhd_traitement_2", names(.))-1   
+                        ),
+                        columnDefs = list(
+                                list(
+                                        visible = FALSE,
+                                        targets = match("vhd_traitement_2", names(.)) -1
+                                )
+                        )
+                )
+        )
+```
+```{r traitement VHD 3eme ligne vs score fibrose}
+data %>% 
+        group_by(vhd_traitement_3) %>% 
+        count(score_fibrose) %>% 
+        mutate("% par traitement" = round(n*100/sum(n),2)) %>% 
+        ungroup() %>% 
+        mutate("% touts tt confondus" = round(n*100/sum(n),2),
+               vhd_traitement_3 = case_when(
+                        vhd_traitement_3 == "Bulévirtide" ~ paste0(vhd_traitement_3," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_3) %>%
+                                                                filter(vhd_traitement_3=="Bulévirtide") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        vhd_traitement_3 == "Bulévirtide en association pegIFNa" ~ paste0(vhd_traitement_3," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_3) %>%
+                                                                filter(vhd_traitement_3=="Bulévirtide en association pegIFNa") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        is.na(vhd_traitement_3) ~ paste0("Données manquantes"," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_3) %>%
+                                                                filter(is.na(vhd_traitement_3)) %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+               )
+               ) %>% 
+        DT::datatable(
+                caption = tags$caption(
+                        style = "caption-side: top; text-align: left; 
+                        font-size: 18px; font-weight: bold; padding: 10px;",
+                        "traitement VHD 3ème ligne vs score fibrose"
+                ),
+                rownames = FALSE,
+                extensions = c("Buttons", "RowGroup", "FixedHeader"),
+                options = list(buttons = list("copy",  
+                                        list(extend = "excel", filename = "vhd_traitement_3 vs score fibrose")
+		),
+                        rowGroup = list(
+                                dataSrc = match("vhd_traitement_3", names(.))-1   
+                        ),
+                        columnDefs = list(
+                                list(
+                                        visible = FALSE,
+                                        targets = match("vhd_traitement_3", names(.)) -1
+                                )
+                        )
+                )
+        )
+```
+### traitement VHD vs cirrhose
+```{r traitement VHD 1eme ligne vs cirrhose}
+data %>% 
+        group_by(vhd_traitement_1) %>% 
+        count(cirrhose_bin) %>% 
+        mutate("% par traitement" = round(n*100/sum(n),2)) %>% 
+        ungroup() %>% 
+        mutate("% touts tt confondus" = round(n*100/sum(n),2),
+               vhd_traitement_1 = case_when(
+                        vhd_traitement_1 == "Bulévirtide" ~ paste0(vhd_traitement_1," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_1) %>%
+                                                                filter(vhd_traitement_1=="Bulévirtide") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        vhd_traitement_1 == "Bulévirtide en association pegIFNa" ~ paste0(vhd_traitement_1," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_1) %>%
+                                                                filter(vhd_traitement_1=="Bulévirtide en association pegIFNa") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        vhd_traitement_1 == "PegIFNa" ~ paste0(vhd_traitement_1," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_1) %>%
+                                                                filter(vhd_traitement_1=="PegIFNa") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        vhd_traitement_1 == "Non traité" ~ paste0(vhd_traitement_1," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_1) %>%
+                                                                filter(vhd_traitement_1=="Non traité") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        is.na(vhd_traitement_1) ~ paste0("Données manquantes"," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_1) %>%
+                                                                filter(is.na(vhd_traitement_1)) %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+               )
+               ) %>% 
+        DT::datatable(
+                caption = tags$caption(
+                        style = "caption-side: top; text-align: left; 
+                        font-size: 18px; font-weight: bold; padding: 10px;",
+                        "traitement VHD 1ère ligne vs cirrhose"
+                ),
+                rownames = FALSE,
+                extensions = c("Buttons", "RowGroup", "FixedHeader"),
+                options = list(buttons = list("copy",  
+                                        list(extend = "excel", filename = "vhd_traitement_1 vs cirrhose")
+		),
+                        rowGroup = list(
+                                dataSrc = match("vhd_traitement_1", names(.))-1   
+                        ),
+                        columnDefs = list(
+                                list(
+                                        visible = FALSE,
+                                        targets = match("vhd_traitement_1", names(.)) -1
+                                )
+                        )
+                )
+        )
+```
+```{r traitement VHD 2eme ligne vs cirrhose}
+data %>% 
+        group_by(vhd_traitement_2) %>% 
+        count(cirrhose_bin) %>% 
+        mutate("% par traitement" = round(n*100/sum(n),2)) %>% 
+        ungroup() %>% 
+        mutate("% touts tt confondus" = round(n*100/sum(n),2),
+               vhd_traitement_2 = case_when(
+                        vhd_traitement_2 == "Bulévirtide" ~ paste0(vhd_traitement_2," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_2) %>%
+                                                                filter(vhd_traitement_2=="Bulévirtide") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        vhd_traitement_2 == "Bulévirtide en association pegIFNa" ~ paste0(vhd_traitement_2," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_2) %>%
+                                                                filter(vhd_traitement_2=="Bulévirtide en association pegIFNa") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        vhd_traitement_2 == "PegIFNa" ~ paste0(vhd_traitement_2," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_2) %>%
+                                                                filter(vhd_traitement_2=="PegIFNa") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        is.na(vhd_traitement_2) ~ paste0("Données manquantes"," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_2) %>%
+                                                                filter(is.na(vhd_traitement_2)) %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+               )
+               ) %>% 
+        DT::datatable(
+                caption = tags$caption(
+                        style = "caption-side: top; text-align: left; 
+                        font-size: 18px; font-weight: bold; padding: 10px;",
+                        "traitement VHD 2eme ligne vs cirrhose"
+                ),
+                rownames = FALSE,
+                extensions = c("Buttons", "RowGroup", "FixedHeader"),
+                options = list(buttons = list("copy",  
+                                        list(extend = "excel", filename = "vhd_traitement_2 vs cirrhose")
+		),
+                        rowGroup = list(
+                                dataSrc = match("vhd_traitement_2", names(.))-1   
+                        ),
+                        columnDefs = list(
+                                list(
+                                        visible = FALSE,
+                                        targets = match("vhd_traitement_2", names(.)) -1
+                                )
+                        )
+                )
+        )
+```
+```{r traitement VHD 3eme ligne vs cirrhose}
+data %>% 
+        group_by(vhd_traitement_3) %>% 
+        count(cirrhose_bin) %>% 
+        mutate("% par traitement" = round(n*100/sum(n),2)) %>% 
+        ungroup() %>% 
+        mutate("% touts tt confondus" = round(n*100/sum(n),2),
+               vhd_traitement_3 = case_when(
+                        vhd_traitement_3 == "Bulévirtide" ~ paste0(vhd_traitement_3," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_3) %>%
+                                                                filter(vhd_traitement_3=="Bulévirtide") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        vhd_traitement_3 == "Bulévirtide en association pegIFNa" ~ paste0(vhd_traitement_3," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_3) %>%
+                                                                filter(vhd_traitement_3=="Bulévirtide en association pegIFNa") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        is.na(vhd_traitement_3) ~ paste0("Données manquantes"," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_3) %>%
+                                                                filter(is.na(vhd_traitement_3)) %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+               )
+               ) %>% 
+        DT::datatable(
+                caption = tags$caption(
+                        style = "caption-side: top; text-align: left; 
+                        font-size: 18px; font-weight: bold; padding: 10px;",
+                        "traitement VHD 3ème ligne vs cirrhose"
+                ),
+                rownames = FALSE,
+                extensions = c("Buttons", "RowGroup", "FixedHeader"),
+                options = list(buttons = list("copy",  
+                                        list(extend = "excel", filename = "vhd_traitement_3 vs cirrhose")
+		),
+                        rowGroup = list(
+                                dataSrc = match("vhd_traitement_3", names(.))-1   
+                        ),
+                        columnDefs = list(
+                                list(
+                                        visible = FALSE,
+                                        targets = match("vhd_traitement_3", names(.)) -1
+                                )
+                        )
+                )
+        )
+```
+### traitement VHD vs tt VHB
+```{r traitement VHD 1eme ligne vs tt VHB}
+data %>% 
+        group_by(vhd_traitement_1) %>% 
+        count(vhb_traitement) %>% 
+        mutate("% par traitement" = round(n*100/sum(n),2)) %>% 
+        ungroup() %>% 
+        mutate("% touts tt confondus" = round(n*100/sum(n),2),
+               vhd_traitement_1 = case_when(
+                        vhd_traitement_1 == "Bulévirtide" ~ paste0(vhd_traitement_1," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_1) %>%
+                                                                filter(vhd_traitement_1=="Bulévirtide") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        vhd_traitement_1 == "Bulévirtide en association pegIFNa" ~ paste0(vhd_traitement_1," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_1) %>%
+                                                                filter(vhd_traitement_1=="Bulévirtide en association pegIFNa") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        vhd_traitement_1 == "PegIFNa" ~ paste0(vhd_traitement_1," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_1) %>%
+                                                                filter(vhd_traitement_1=="PegIFNa") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        vhd_traitement_1 == "Non traité" ~ paste0(vhd_traitement_1," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_1) %>%
+                                                                filter(vhd_traitement_1=="Non traité") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        is.na(vhd_traitement_1) ~ paste0("Données manquantes"," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_1) %>%
+                                                                filter(is.na(vhd_traitement_1)) %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+               )
+               ) %>% 
+        DT::datatable(
+                caption = tags$caption(
+                        style = "caption-side: top; text-align: left; 
+                        font-size: 18px; font-weight: bold; padding: 10px;",
+                        "traitement VHD 1ère ligne vs tt vhb"
+                ),
+                rownames = FALSE,
+                extensions = c("Buttons", "RowGroup", "FixedHeader"),
+                options = list(buttons = list("copy",  
+                                        list(extend = "excel", filename = "vhd_traitement_1 vs tt vhb")
+		),
+                        rowGroup = list(
+                                dataSrc = match("vhd_traitement_1", names(.)) -1 
+                        ),
+                        columnDefs = list(
+                                list(
+                                        visible = FALSE,
+                                        targets = match("vhd_traitement_1", names(.)) -1
+                                )
+                        )
+                )
+        )
+```
+```{r traitement VHD 2eme ligne vs tt VHB}
+data %>% 
+        group_by(vhd_traitement_2) %>% 
+        count(vhb_traitement) %>% 
+        mutate("% par traitement" = round(n*100/sum(n),2)) %>% 
+        ungroup() %>% 
+        mutate("% touts tt confondus" = round(n*100/sum(n),2),
+               vhd_traitement_2 = case_when(
+                        vhd_traitement_2 == "Bulévirtide" ~ paste0(vhd_traitement_2," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_2) %>%
+                                                                filter(vhd_traitement_2=="Bulévirtide") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        vhd_traitement_2 == "Bulévirtide en association pegIFNa" ~ paste0(vhd_traitement_2," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_2) %>%
+                                                                filter(vhd_traitement_2=="Bulévirtide en association pegIFNa") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        vhd_traitement_2 == "PegIFNa" ~ paste0(vhd_traitement_2," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_2) %>%
+                                                                filter(vhd_traitement_2=="PegIFNa") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        is.na(vhd_traitement_2) ~ paste0("Données manquantes"," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_2) %>%
+                                                                filter(is.na(vhd_traitement_2)) %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+               )
+               ) %>% 
+        DT::datatable(
+                caption = tags$caption(
+                        style = "caption-side: top; text-align: left; 
+                        font-size: 18px; font-weight: bold; padding: 10px;",
+                        "traitement VHD 2eme ligne vs tt vhb"
+                ),
+                rownames = FALSE,
+                extensions = c("Buttons", "RowGroup", "FixedHeader"),
+                options = list(buttons = list("copy",  
+                                        list(extend = "excel", filename = "vhd_traitement_2 vs tt vhb")
+		),
+                        rowGroup = list(
+                                dataSrc = match("vhd_traitement_2", names(.))-1   
+                        ),
+                        columnDefs = list(
+                                list(
+                                        visible = FALSE,
+                                        targets = match("vhd_traitement_2", names(.)) -1
+                                )
+                        )
+                )
+        )
+```
+```{r traitement VHD 3eme ligne vs tt VHB}
+data %>% 
+        group_by(vhd_traitement_3) %>% 
+        count(vhb_traitement) %>% 
+        mutate("% par traitement" = round(n*100/sum(n),2)) %>% 
+        ungroup() %>% 
+        mutate("% touts tt confondus" = round(n*100/sum(n),2),
+               vhd_traitement_3 = case_when(
+                        vhd_traitement_3 == "Bulévirtide" ~ paste0(vhd_traitement_3," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_3) %>%
+                                                                filter(vhd_traitement_3=="Bulévirtide") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        vhd_traitement_3 == "Bulévirtide en association pegIFNa" ~ paste0(vhd_traitement_3," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_3) %>%
+                                                                filter(vhd_traitement_3=="Bulévirtide en association pegIFNa") %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+                        is.na(vhd_traitement_3) ~ paste0("Données manquantes"," - (",
+                                                        round((data %>%
+                                                                count(vhd_traitement_3) %>%
+                                                                filter(is.na(vhd_traitement_3)) %>%
+                                                                pull(n)
+                                                               )*100/367,2),"%)"),
+               )
+               ) %>% 
+        DT::datatable(
+                caption = tags$caption(
+                        style = "caption-side: top; text-align: left; 
+                        font-size: 18px; font-weight: bold; padding: 10px;",
+                        "traitement VHD 3ème ligne vs tt vhb"
+                ),
+                rownames = FALSE,
+                extensions = c("Buttons", "RowGroup", "FixedHeader"),
+                options = list(buttons = list("copy",  
+                                        list(extend = "excel", filename = "vhd_traitement_3 vs tt vhb")
+		),
+                        rowGroup = list(
+                                dataSrc = match("vhd_traitement_3", names(.))-1   
+                        ),
+                        columnDefs = list(
+                                list(
+                                        visible = FALSE,
+                                        targets = match("vhd_traitement_3", names(.)) -1
+                                )
+                        )
+                )
+        )
+```
+### Reduction cv vhd à s24
+```{r traitement VHD 3eme ligne vs Reduction cv vhd à s24}
+data %>% count(reduction_cv_vhd_1) %>% mutate("%" = round(n*100/sum(n),2),
+                                              "% sans NA" = round(n*100/(sum(n)-298),2),
+                                              "% sans NA" = ifelse(`% sans NA`>100,NA,`% sans NA`))  %>% 
+        DT::datatable(
+                caption = tags$caption(
+                        style = "caption-side: top; text-align: left; 
+                        font-size: 18px; font-weight: bold; padding: 10px;",
+                        "traitement VHD 1ère ligne vs reduction cv vhd à s24"
+                ),
+                rownames = FALSE,
+                extensions = c("Buttons", "RowGroup", "FixedHeader"),
+                options = list(buttons = list("copy",  
+                                        list(extend = "excel", filename = "vhd_traitement_1 vs reduction cv vhd à s24")
+		)))
+
+data %>% count(reduction_cv_vhd_2) %>% mutate("%" = round(n*100/sum(n),2),
+                                              "% sans NA" = round(n*100/(sum(n)-344),2),
+                                              "% sans NA" = ifelse(`% sans NA`>100,NA,`% sans NA`)) %>% 
+        DT::datatable(
+                caption = tags$caption(
+                        style = "caption-side: top; text-align: left; 
+                        font-size: 18px; font-weight: bold; padding: 10px;",
+                        "traitement VHD 2ème ligne vs reduction cv vhd à s24"
+                ),
+                rownames = FALSE,
+                extensions = c("Buttons", "RowGroup", "FixedHeader"),
+                options = list(buttons = list("copy",  
+                                        list(extend = "excel", filename = "vhd_traitement_2 vs reduction cv vhd à s24")
+		)))
+
+data %>% count(reduction_cv_vhd_3) %>% mutate("%" = round(n*100/sum(n),2),
+                                              "% sans NA" = round(n*100/(sum(n)-356),2),
+                                              "% sans NA" = ifelse(`% sans NA`>100,NA,`% sans NA`)) %>% 
+        DT::datatable(
+                caption = tags$caption(
+                        style = "caption-side: top; text-align: left; 
+                        font-size: 18px; font-weight: bold; padding: 10px;",
+                        "traitement VHD 3ème ligne vs reduction cv vhd à s24"
+                ),
+                rownames = FALSE,
+                extensions = c("Buttons", "RowGroup", "FixedHeader"),
+                options = list(buttons = list("copy",  
+                                        list(extend = "excel", filename = "vhd_traitement_3 vs reduction cv vhd à s24")
+		)))
+```
+### Lignes de traitement
+```{r lignes de traitement}
+data %>% 
+        count(vhd_traitement_1,vhd_traitement_2,vhd_traitement_3) %>%
+        arrange(desc(n)) %>% 
+        DT::datatable(
+                caption = tags$caption(
+                        style = "caption-side: top; text-align: left; 
+                        font-size: 18px; font-weight: bold; padding: 10px;",
+                        "Lignes de traitement"
+                ),
+                rownames = FALSE,
+                extensions = c("Buttons", "RowGroup", "FixedHeader"),
+                options = list(buttons = list("copy",  
+                                        list(extend = "excel", filename = "Lignes de traitement")
+		)))
+
+```
+### Complications
+```{r tableaux complications}
+ei1 = data %>% select(starts_with("ei") & ends_with("1")) %>% names
+
+data %>% 
+        count(vhd_traitement_1,pick(all_of(ei1))) %>% 
+        arrange(desc(n)) %>% mutate("%" = round(n*100/sum(n),2)) %>% 
+        group_by(vhd_traitement_1) %>% 
+        mutate("% by traitement" = round(n*100/sum(n),2)) %>% 
+        DT::datatable(
+                caption = tags$caption(
+                        style = "caption-side: top; text-align: left; 
+                        font-size: 18px; font-weight: bold; padding: 10px;",
+                        "Complications vhd_traitement_1"
+                ),
+                rownames = FALSE,
+                extensions = c("Buttons", "RowGroup", "FixedHeader"),
+                options = list(buttons = list("copy",  
+                                        list(extend = "excel", filename = "Complications vhd_traitement_1")
+		)))
+
+data %>% 
+        count(vhd_traitement_2,pick(all_of(ei1))) %>% 
+        arrange(desc(n)) %>% mutate("%" = round(n*100/sum(n),2)) %>% 
+        group_by(vhd_traitement_2) %>% 
+        mutate("% by traitement" = round(n*100/sum(n),2)) %>% 
+        DT::datatable(
+                caption = tags$caption(
+                        style = "caption-side: top; text-align: left; 
+                        font-size: 18px; font-weight: bold; padding: 10px;",
+                        "Complications vhd_traitement_2"
+                ),
+                rownames = FALSE,
+                extensions = c("Buttons", "RowGroup", "FixedHeader"),
+                options = list(buttons = list("copy",  
+                                        list(extend = "excel", filename = "Complications vhd_traitement_2")
+		)))
+
+data %>% 
+        count(vhd_traitement_3,pick(all_of(ei1))) %>% 
+        arrange(desc(n)) %>% mutate("%" = round(n*100/sum(n),2)) %>% 
+        group_by(vhd_traitement_3) %>% 
+        mutate("% by traitement" = round(n*100/sum(n),2)) %>% 
+        DT::datatable(
+                caption = tags$caption(
+                        style = "caption-side: top; text-align: left; 
+                        font-size: 18px; font-weight: bold; padding: 10px;",
+                        "Complications vhd_traitement_3"
+                ),
+                rownames = FALSE,
+                extensions = c("Buttons", "RowGroup", "FixedHeader"),
+                options = list(buttons = list("copy",  
+                                        list(extend = "excel", filename = "Complications vhd_traitement_3")
+		)))
+
+
+```
 
