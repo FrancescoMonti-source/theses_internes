@@ -71,11 +71,6 @@ options(
     
     ## 📌 Layout and Buttons
     dom            = "Blfrtip",                              # controls layout
-    buttons        = list(
-      "copy",
-      list(extend = "excel", filename = "table_export")
-      # Also available: "csv", "pdf", "print"
-    ),
     
     ## 🖋 Header style (JS)
     initComplete = JS(
@@ -103,15 +98,11 @@ options(
 )
 ```
 
-
-
 ```{r load data, include=FALSE}
 data <- read.xlsx("tableau_clean.xlsx", sheet = 1) %>%
   as_tibble() %>%
   select(id:commentaires)
 ```
-
-
 
 ```{r some cleaning}
 # Patient vide
@@ -666,7 +657,7 @@ data %>%
   )
 ```
 
-# Fibrose hépatique
+## Fibrose hépatique
 
 ```{r distribution score fibrose}
 g <- data %>%
@@ -795,7 +786,6 @@ Pour cela, nous avons : - Stratifié l’échantillon selon le **stade de fibros
     -   Le **test du Chi²** (ou Fisher exact) pour les variables qualitatives ;
     -   Le **test de Kruskal-Wallis** pour les variables quantitatives.
 
-------------------------------------------------------------------------
 
 📊 Interprétation des résultats
 
@@ -855,7 +845,7 @@ datatable(
 data$vhdcv
 ```
 
-# Characteristiques viro
+## Characteristiques viro
 ```{r}
 g = data %>% 
         select(id,score_fibrose,vhd_cv_pre_traitement) %>%
@@ -896,5 +886,64 @@ data %>%
         facet_wrap(facets = "cirrhose_bin")
 ```
 
+### Distribution valeurs CV
+```{r}
+# Séparation des patients avec une CV négative et positive. Puis parmi les CV+, noter la moyenne des patients avec CV + ? 
+
+# tableau distribution CV (0s inclus)
+
+data %>% 
+        mutate(vhd_cv_pre_traitement = as.numeric(vhd_cv_pre_traitement)) %>% 
+        group_by(cirrhose_bin) %>%
+        summarise(n = n(),
+                  mean = mean(vhd_cv_pre_traitement,na.rm=T),
+                  median = median(vhd_cv_pre_traitement,na.rm=T),
+                  min = min(vhd_cv_pre_traitement,na.rm=T),
+                  max = max(vhd_cv_pre_traitement,na.rm=T),
+                  sd = sd(vhd_cv_pre_traitement,na.rm=T)) %>%
+        mutate(across(where(is.numeric), function(x) round(x,2))) %>% 
+        DT::datatable(
+                caption = tags$caption(
+                        style = "caption-side: top; text-align: left; font-size: 18px; font-weight: bold; padding: 10px;",
+                        "Distribution CV (0s inclus)"
+                ),
+                rownames = FALSE,
+                extensions = c("Buttons", "RowGroup", "FixedHeader"),
+                options = list(buttons        = list(
+                      "copy",
+                      list(extend = "excel", filename = "tableau distribution CV (0s inclus)")
+                      # Also available: "csv", "pdf", "print"
+                )),
+        )
+
+# tableau distribution CV (0s exclus)
+data %>% 
+        mutate(vhd_cv_pre_traitement = as.numeric(vhd_cv_pre_traitement)) %>% 
+        filter(vhd_cv_pre_traitement > 0 ) %>% 
+        group_by(cirrhose_bin) %>%
+        summarise(n = n(),
+                  mean = mean(vhd_cv_pre_traitement,na.rm=T),
+                  median = median(vhd_cv_pre_traitement,na.rm=T),
+                  min = min(vhd_cv_pre_traitement,na.rm=T),
+                  max = max(vhd_cv_pre_traitement,na.rm=T),
+                  sd = sd(vhd_cv_pre_traitement,na.rm=T)) %>%  
+        mutate(across(where(is.numeric), function(x) round(x,2))) %>% 
+        ungroup %>% 
+        DT::datatable(
+                caption = tags$caption(
+                        style = "caption-side: top; text-align: left; font-size: 18px; font-weight: bold; padding: 10px;",
+                        "Distribution CV (0s exclus)"
+                ),
+                rownames = FALSE,
+                extensions = c("Buttons", "RowGroup", "FixedHeader"),
+                options = list(buttons        = list(
+                      "copy",
+                      list(extend = "excel", filename = "tableau distribution CV (0s exclus)")
+                      # Also available: "csv", "pdf", "print"
+                )),
+        )
+
+
+```
 
 
